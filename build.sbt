@@ -11,5 +11,7 @@ scalaVersion := "2.11.11"
 resolvers += "Confluent Maven Repo" at "http://packages.confluent.io/maven/"
 resolvers += Resolver.mavenLocal
 
+libraryDependencies += "io.confluent.ksql" % "ksql-rest-app" % "0.1-SNAPSHOT"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
-libraryDependencies += "io.confluent.ksql" % "ksql-cli" % "0.1-SNAPSHOT"
+libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % "test"
+
