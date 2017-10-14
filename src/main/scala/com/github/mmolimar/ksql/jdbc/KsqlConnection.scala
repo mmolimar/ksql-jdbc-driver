@@ -12,6 +12,11 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[String, String]) {
+  def getKsqlUrl: String = {
+    val protocol = if (isSecured) "https://" else "http://"
+    protocol + ksqlServer + ":" + port
+  }
+
   def isSecured: Boolean = config.get("secured").getOrElse("false").toBoolean
 }
 
@@ -20,9 +25,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
   private val ksqlClient = initConnection
 
   private[jdbc] def initConnection(): KsqlRestClient = {
-    val protocol = if (values.isSecured) "https://" else "http://"
-    val ksqlUrl = protocol + values.ksqlServer + ":" + values.port
-    val client = new KsqlRestClient(ksqlUrl, properties.asScala.toMap[String, AnyRef].asJava)
+    val client = new KsqlRestClient(values.getKsqlUrl, properties.asScala.toMap[String, AnyRef].asJava)
     Try(client.makeRootRequest) match {
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)

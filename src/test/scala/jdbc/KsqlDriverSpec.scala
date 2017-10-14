@@ -55,20 +55,26 @@ class KsqlDriverSpec extends WordSpec with Matchers {
         connectionValues.ksqlServer should be(ksqlServer)
         connectionValues.port should be(ksqlPort)
         connectionValues.config.isEmpty should be(true)
+        connectionValues.getKsqlUrl should be(s"http://${ksqlServer}:${ksqlPort}")
+        connectionValues.isSecured should be(false)
 
         connectionValues = KsqlDriver.parseUrl(s"jdbc:ksql://${ksqlServer}:${ksqlPort}?prop1=value1")
         connectionValues.ksqlServer should be(ksqlServer)
         connectionValues.port should be(ksqlPort)
         connectionValues.config.size should be(1)
         connectionValues.config.get("prop1").get should be("value1")
+        connectionValues.getKsqlUrl should be(s"http://${ksqlServer}:${ksqlPort}")
+        connectionValues.isSecured should be(false)
 
-        connectionValues = KsqlDriver.parseUrl(s"jdbc:ksql://${ksqlServer}:${ksqlPort}?prop1=value1&prop2=value2&prop3=value3")
+        connectionValues = KsqlDriver.parseUrl(s"jdbc:ksql://${ksqlServer}:${ksqlPort}?prop1=value1&secured=true&prop2=value2")
         connectionValues.ksqlServer should be(ksqlServer)
         connectionValues.port should be(ksqlPort)
         connectionValues.config.size should be(3)
         connectionValues.config.get("prop1").get should be("value1")
         connectionValues.config.get("prop2").get should be("value2")
-        connectionValues.config.get("prop3").get should be("value3")
+        connectionValues.config.get("secured").get should be("true")
+        connectionValues.getKsqlUrl should be(s"https://${ksqlServer}:${ksqlPort}")
+        connectionValues.isSecured should be(true)
       }
     }
   }
