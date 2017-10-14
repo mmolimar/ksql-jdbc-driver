@@ -5,130 +5,156 @@ import java.util
 import java.util.Properties
 import java.util.concurrent.Executor
 
-import com.github.mmolimar.ksql.jdbc.helpers.Exceptions._
-import com.github.mmolimar.ksql.jdbc.helpers.NotSupported
+import com.github.mmolimar.ksql.jdbc.Exceptions._
+import io.confluent.ksql.rest.client.KsqlRestClient
 
-case class KsqlConnectionValues(brokerList: String, props: Map[String, String])
+import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
-class KsqlConnection(values: KsqlConnectionValues) extends Connection {
+case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[String, String]) {
+  def isSecured: Boolean = config.get("secured").getOrElse("false").toBoolean
+}
 
-  override def setAutoCommit(autoCommit: Boolean): Unit = wrapExceptionAndThrow(NotSupported())
+class KsqlConnection(values: KsqlConnectionValues, properties: Properties) extends Connection {
 
-  override def setHoldability(holdability: Int): Unit = wrapExceptionAndThrow(NotSupported())
+  private val ksqlClient = initConnection
 
-  override def clearWarnings(): Unit = wrapExceptionAndThrow(NotSupported())
+  private[jdbc] def initConnection(): KsqlRestClient = {
+    val protocol = if (values.isSecured) "https://" else "http://"
+    val ksqlUrl = protocol + values.ksqlServer + ":" + values.port
+    val client = new KsqlRestClient(ksqlUrl, properties.asScala.toMap[String, AnyRef].asJava)
+    Try(client.makeRootRequest) match {
+      case Success(response) if response.isErroneous =>
+        throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
+      case Failure(e) => throw CannotConnect(values.ksqlServer, e.getMessage)
+    }
+    client
+  }
 
-  override def getNetworkTimeout: Int = wrapExceptionAndThrow(NotSupported())
+  override def setAutoCommit(autoCommit: Boolean): Unit = throw NotSupported()
 
-  override def createBlob(): Blob = wrapExceptionAndThrow(NotSupported())
+  override def setHoldability(holdability: Int): Unit = throw NotSupported()
 
-  override def createSQLXML(): SQLXML = wrapExceptionAndThrow(NotSupported())
+  override def clearWarnings(): Unit = throw NotSupported()
 
-  override def setSavepoint(): Savepoint = wrapExceptionAndThrow(NotSupported())
+  override def getNetworkTimeout: Int = throw NotSupported()
 
-  override def setSavepoint(name: String): Savepoint = wrapExceptionAndThrow(NotSupported())
+  override def createBlob(): Blob = throw NotSupported()
 
-  override def createNClob(): NClob = wrapExceptionAndThrow(NotSupported())
+  override def createSQLXML(): SQLXML = throw NotSupported()
 
-  override def getTransactionIsolation: Int = wrapExceptionAndThrow(NotSupported())
+  override def setSavepoint(): Savepoint = throw NotSupported()
 
-  override def getClientInfo(name: String): String = wrapExceptionAndThrow(NotSupported())
+  override def setSavepoint(name: String): Savepoint = throw NotSupported()
 
-  override def getClientInfo: Properties = wrapExceptionAndThrow(NotSupported())
+  override def createNClob(): NClob = throw NotSupported()
 
-  override def getSchema: String = wrapExceptionAndThrow(NotSupported())
+  override def getTransactionIsolation: Int = Connection.TRANSACTION_NONE
+
+  override def getClientInfo(name: String): String = throw NotSupported()
+
+  override def getClientInfo: Properties = throw NotSupported()
+
+  override def getSchema: String = throw NotSupported()
 
   override def setNetworkTimeout(executor: Executor, milliseconds: Int):
-  Unit = wrapExceptionAndThrow(NotSupported())
+  Unit = throw NotSupported()
 
-  override def getMetaData: DatabaseMetaData = wrapExceptionAndThrow(NotSupported())
+  override def getMetaData: DatabaseMetaData = throw NotSupported()
 
-  override def getTypeMap: util.Map[String, Class[_]] = wrapExceptionAndThrow(NotSupported())
+  override def getTypeMap: util.Map[String, Class[_]] = throw NotSupported()
 
-  override def rollback(): Unit = wrapExceptionAndThrow(NotSupported())
+  override def rollback(): Unit = throw NotSupported()
 
-  override def rollback(savepoint: Savepoint): Unit = wrapExceptionAndThrow(NotSupported())
+  override def rollback(savepoint: Savepoint): Unit = throw NotSupported()
 
-  override def createStatement(): Statement = wrapExceptionAndThrow(NotSupported())
+  override def createStatement(): Statement = throw NotSupported()
 
   override def createStatement(resultSetType: Int, resultSetConcurrency: Int):
-  Statement = wrapExceptionAndThrow(NotSupported())
+  Statement = throw NotSupported()
 
   override def createStatement(resultSetType: Int, resultSetConcurrency: Int, resultSetHoldability: Int):
-  Statement = wrapExceptionAndThrow(NotSupported())
+  Statement = throw NotSupported()
 
-  override def getHoldability: Int = wrapExceptionAndThrow(NotSupported())
+  override def getHoldability: Int = throw NotSupported()
 
-  override def setReadOnly(readOnly: Boolean): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setReadOnly(readOnly: Boolean): Unit = throw NotSupported()
 
-  override def setClientInfo(name: String, value: String): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setClientInfo(name: String, value: String): Unit = {
+    val ksql = s"SET '${name.trim}'='${value.trim}';"
+    if (ksqlClient.makeKsqlRequest(ksql).isErroneous) {
+      throw InvalidProperty(name)
+    }
+  }
 
-  override def setClientInfo(properties: Properties): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setClientInfo(properties: Properties): Unit = {
+    properties.asScala.foreach(entry => setClientInfo(entry._1, entry._2))
+  }
 
-  override def isReadOnly: Boolean = wrapExceptionAndThrow(NotSupported())
+  override def isReadOnly: Boolean = true
 
-  override def setTypeMap(map: util.Map[String, Class[_]]): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setTypeMap(map: util.Map[String, Class[_]]): Unit = throw NotSupported()
 
-  override def getCatalog: String = wrapExceptionAndThrow(NotSupported())
+  override def getCatalog: String = throw NotSupported()
 
-  override def createClob(): Clob = wrapExceptionAndThrow(NotSupported())
+  override def createClob(): Clob = throw NotSupported()
 
-  override def nativeSQL(sql: String): String = wrapExceptionAndThrow(NotSupported())
+  override def nativeSQL(sql: String): String = throw NotSupported()
 
-  override def setTransactionIsolation(level: Int): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setTransactionIsolation(level: Int): Unit = throw NotSupported()
 
-  override def prepareCall(sql: String): CallableStatement = wrapExceptionAndThrow(NotSupported())
+  override def prepareCall(sql: String): CallableStatement = throw NotSupported()
 
   override def prepareCall(sql: String, resultSetType: Int, resultSetConcurrency: Int):
-  CallableStatement = wrapExceptionAndThrow(NotSupported())
+  CallableStatement = throw NotSupported()
 
   override def prepareCall(sql: String, resultSetType: Int, resultSetConcurrency: Int, resultSetHoldability: Int):
-  CallableStatement = wrapExceptionAndThrow(NotSupported())
+  CallableStatement = throw NotSupported()
 
   override def createArrayOf(typeName: String, elements: scala.Array[AnyRef]):
-  Array = wrapExceptionAndThrow(NotSupported())
+  Array = throw NotSupported()
 
-  override def setCatalog(catalog: String): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setCatalog(catalog: String): Unit = throw NotSupported()
 
-  override def close(): Unit = wrapExceptionAndThrow(NotSupported())
+  override def close(): Unit = ksqlClient.close
 
-  override def getAutoCommit: Boolean = wrapExceptionAndThrow(NotSupported())
+  override def getAutoCommit: Boolean = throw NotSupported()
 
-  override def abort(executor: Executor): Unit = wrapExceptionAndThrow(NotSupported())
+  override def abort(executor: Executor): Unit = throw NotSupported()
 
-  override def isValid(timeout: Int): Boolean = wrapExceptionAndThrow(NotSupported())
+  override def isValid(timeout: Int): Boolean = ksqlClient.makeStatusRequest.isSuccessful
 
-  override def prepareStatement(sql: String): PreparedStatement = wrapExceptionAndThrow(NotSupported())
+  override def prepareStatement(sql: String): PreparedStatement = throw NotSupported()
 
   override def prepareStatement(sql: String, resultSetType: Int, resultSetConcurrency: Int):
-  PreparedStatement = wrapExceptionAndThrow(NotSupported())
+  PreparedStatement = throw NotSupported()
 
   override def prepareStatement(sql: String, resultSetType: Int, resultSetConcurrency: Int, resultSetHoldability: Int):
-  PreparedStatement = wrapExceptionAndThrow(NotSupported())
+  PreparedStatement = throw NotSupported()
 
   override def prepareStatement(sql: String, autoGeneratedKeys: Int):
-  PreparedStatement = wrapExceptionAndThrow(NotSupported())
+  PreparedStatement = throw NotSupported()
 
   override def prepareStatement(sql: String, columnIndexes: scala.Array[Int]):
-  PreparedStatement = wrapExceptionAndThrow(NotSupported())
+  PreparedStatement = throw NotSupported()
 
   override def prepareStatement(sql: String, columnNames: scala.Array[String]):
-  PreparedStatement = wrapExceptionAndThrow(NotSupported())
+  PreparedStatement = throw NotSupported()
 
-  override def releaseSavepoint(savepoint: Savepoint): Unit = wrapExceptionAndThrow(NotSupported())
+  override def releaseSavepoint(savepoint: Savepoint): Unit = throw NotSupported()
 
-  override def isClosed: Boolean = wrapExceptionAndThrow(NotSupported())
+  override def isClosed: Boolean = throw NotSupported()
 
   override def createStruct(typeName: String, attributes: scala.Array[AnyRef]):
-  Struct = wrapExceptionAndThrow(NotSupported())
+  Struct = throw NotSupported()
 
-  override def getWarnings: SQLWarning = wrapExceptionAndThrow(NotSupported())
+  override def getWarnings: SQLWarning = throw NotSupported()
 
-  override def setSchema(schema: String): Unit = wrapExceptionAndThrow(NotSupported())
+  override def setSchema(schema: String): Unit = throw NotSupported()
 
-  override def commit(): Unit = wrapExceptionAndThrow(NotSupported())
+  override def commit(): Unit = throw NotSupported()
 
-  override def unwrap[T](iface: Class[T]): T = wrapExceptionAndThrow(NotSupported())
+  override def unwrap[T](iface: Class[T]): T = throw NotSupported()
 
-  override def isWrapperFor(iface: Class[_]): Boolean = wrapExceptionAndThrow(NotSupported())
+  override def isWrapperFor(iface: Class[_]): Boolean = throw NotSupported()
 }
