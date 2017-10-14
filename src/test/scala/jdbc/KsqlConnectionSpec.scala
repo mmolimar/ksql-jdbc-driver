@@ -1,19 +1,29 @@
 package jdbc
 
-import java.sql.SQLFeatureNotSupportedException
+import java.sql.{Connection, SQLFeatureNotSupportedException}
 import java.util.Properties
 
 import com.github.mmolimar.ksql.jdbc.{KsqlConnection, KsqlConnectionValues}
+import io.confluent.ksql.rest.client.KsqlRestClient
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 
-class KsqlConnectionSpec extends WordSpec with Matchers {
+class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
   "A KsqlConnection" when {
     "validating specs" should {
-      "return not supported exception" in {
-        val values = KsqlConnectionValues("broker1:9092", Map.empty[String, String])
-        val connection = new KsqlConnection(values)
+      val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
+      val mockedInitConnection = mockFunction[KsqlRestClient]
+      mockedInitConnection.expects.returns(new KsqlRestClient("http://localhost:45678"))
+      val connection = new KsqlConnection(values, new Properties) {
+        override def initConnection(): KsqlRestClient = mockedInitConnection.apply
 
+        override def setClientInfo(name: String, value: String): Unit = {}
+
+        override def isValid(timeout: Int): Boolean = true
+      }
+
+      "throw not supported exception if not supported" in {
         assertThrows[SQLFeatureNotSupportedException] {
           connection.setAutoCommit(true)
         }
@@ -40,9 +50,6 @@ class KsqlConnectionSpec extends WordSpec with Matchers {
         }
         assertThrows[SQLFeatureNotSupportedException] {
           connection.createNClob
-        }
-        assertThrows[SQLFeatureNotSupportedException] {
-          connection.getTransactionIsolation
         }
         assertThrows[SQLFeatureNotSupportedException] {
           connection.getClientInfo("")
@@ -84,15 +91,6 @@ class KsqlConnectionSpec extends WordSpec with Matchers {
           connection.setReadOnly(false)
         }
         assertThrows[SQLFeatureNotSupportedException] {
-          connection.setClientInfo("", "")
-        }
-        assertThrows[SQLFeatureNotSupportedException] {
-          connection.setClientInfo(new Properties)
-        }
-        assertThrows[SQLFeatureNotSupportedException] {
-          connection.isReadOnly
-        }
-        assertThrows[SQLFeatureNotSupportedException] {
           connection.setTypeMap(null)
         }
         assertThrows[SQLFeatureNotSupportedException] {
@@ -123,16 +121,10 @@ class KsqlConnectionSpec extends WordSpec with Matchers {
           connection.setCatalog("")
         }
         assertThrows[SQLFeatureNotSupportedException] {
-          connection.close
-        }
-        assertThrows[SQLFeatureNotSupportedException] {
           connection.getAutoCommit
         }
         assertThrows[SQLFeatureNotSupportedException] {
           connection.abort(null)
-        }
-        assertThrows[SQLFeatureNotSupportedException] {
-          connection.isValid(0)
         }
         assertThrows[SQLFeatureNotSupportedException] {
           connection.prepareStatement("")
@@ -176,7 +168,14 @@ class KsqlConnectionSpec extends WordSpec with Matchers {
         assertThrows[SQLFeatureNotSupportedException] {
           connection.isWrapperFor(null)
         }
-
+      }
+      "work if implemented" in {
+        connection.getTransactionIsolation should be(Connection.TRANSACTION_NONE)
+        connection.setClientInfo(new Properties)
+        connection.setClientInfo("", "")
+        connection.isReadOnly should be(true)
+        connection.isValid(0) should be(true)
+        connection.close
       }
     }
   }
