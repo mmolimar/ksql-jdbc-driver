@@ -10,7 +10,13 @@ import scala.util.Try
 
 object KsqlDriver {
 
+  val driverName = "KSQL JDBC"
+  val version = "0.1-SNAPSHOT"
   val ksqlPrefix = "jdbc:ksql://"
+  val majorVersion = 1
+  val minorVersion = 0
+  val jdbcMajorVersion = 4
+  val jdbcMinorVersion = 1
 
   private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]+)"
 
@@ -37,9 +43,9 @@ class KsqlDriver extends Driver {
 
   override def getPropertyInfo(url: String, info: Properties): scala.Array[DriverPropertyInfo] = scala.Array.empty
 
-  override def getMinorVersion: Int = 0
+  override def getMinorVersion: Int = KsqlDriver.minorVersion
 
-  override def getMajorVersion: Int = 1
+  override def getMajorVersion: Int = KsqlDriver.majorVersion
 
   override def getParentLogger: Logger = throw NotSupported("getParentLogger method not supported")
 
