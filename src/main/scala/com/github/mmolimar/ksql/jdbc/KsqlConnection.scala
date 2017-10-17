@@ -22,35 +22,37 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
 
 class KsqlConnection(values: KsqlConnectionValues, properties: Properties) extends Connection {
 
-  private val ksqlClient = initConnection
+  private val ksqlClient = init
 
-  private[jdbc] def initConnection(): KsqlRestClient = {
-    val client = new KsqlRestClient(values.getKsqlUrl, properties.asScala.toMap[String, AnyRef].asJava)
-    Try(client.makeRootRequest) match {
+  private[jdbc] def init: KsqlRestClient = {
+    new KsqlRestClient(values.getKsqlUrl, properties.asScala.toMap[String, AnyRef].asJava)
+  }
+
+  private[jdbc] def validate: Unit = {
+    Try(ksqlClient.makeRootRequest) match {
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
       case Failure(e) => throw CannotConnect(values.ksqlServer, e.getMessage)
     }
-    client
   }
 
   override def setAutoCommit(autoCommit: Boolean): Unit = throw NotSupported()
 
   override def setHoldability(holdability: Int): Unit = throw NotSupported()
 
-  override def clearWarnings(): Unit = throw NotSupported()
+  override def clearWarnings: Unit = throw NotSupported()
 
   override def getNetworkTimeout: Int = throw NotSupported()
 
-  override def createBlob(): Blob = throw NotSupported()
+  override def createBlob: Blob = throw NotSupported()
 
-  override def createSQLXML(): SQLXML = throw NotSupported()
+  override def createSQLXML: SQLXML = throw NotSupported()
 
-  override def setSavepoint(): Savepoint = throw NotSupported()
+  override def setSavepoint: Savepoint = throw NotSupported()
 
   override def setSavepoint(name: String): Savepoint = throw NotSupported()
 
-  override def createNClob(): NClob = throw NotSupported()
+  override def createNClob: NClob = throw NotSupported()
 
   override def getTransactionIsolation: Int = Connection.TRANSACTION_NONE
 
@@ -67,11 +69,11 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def getTypeMap: util.Map[String, Class[_]] = throw NotSupported()
 
-  override def rollback(): Unit = throw NotSupported()
+  override def rollback: Unit = throw NotSupported()
 
   override def rollback(savepoint: Savepoint): Unit = throw NotSupported()
 
-  override def createStatement(): Statement = throw NotSupported()
+  override def createStatement: Statement = throw NotSupported()
 
   override def createStatement(resultSetType: Int, resultSetConcurrency: Int):
   Statement = throw NotSupported()
@@ -100,7 +102,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def getCatalog: String = throw NotSupported()
 
-  override def createClob(): Clob = throw NotSupported()
+  override def createClob: Clob = throw NotSupported()
 
   override def nativeSQL(sql: String): String = throw NotSupported()
 
@@ -119,7 +121,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def setCatalog(catalog: String): Unit = throw NotSupported()
 
-  override def close(): Unit = ksqlClient.close
+  override def close: Unit = ksqlClient.close
 
   override def getAutoCommit: Boolean = throw NotSupported()
 
@@ -155,7 +157,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def setSchema(schema: String): Unit = throw NotSupported()
 
-  override def commit(): Unit = throw NotSupported()
+  override def commit: Unit = throw NotSupported()
 
   override def unwrap[T](iface: Class[T]): T = throw NotSupported()
 
