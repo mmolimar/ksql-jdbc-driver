@@ -1,14 +1,14 @@
-package jdbc
+package com.github.mmolimar.ksql.jdbc
 
 import java.sql.{SQLException, SQLFeatureNotSupportedException}
+import java.util.Properties
 
-import com.github.mmolimar.ksql.jdbc.KsqlDriver
 import org.scalatest.{Matchers, WordSpec}
 
 class KsqlDriverSpec extends WordSpec with Matchers {
 
   "A KsqlDriver" when {
-    val driver = new KsqlDriver()
+    val driver = new KsqlDriver
     "validating specs" should {
       "not be JDBC compliant" in {
         driver.jdbcCompliant shouldBe (false)
@@ -17,9 +17,17 @@ class KsqlDriverSpec extends WordSpec with Matchers {
         driver.getMinorVersion shouldBe (0)
         driver.getMajorVersion shouldBe (1)
       }
+      "have no properties" in {
+        driver.getPropertyInfo("", new Properties).length should be(0)
+      }
       "throw an exception when getting parent logger" in {
         assertThrows[SQLFeatureNotSupportedException] {
           driver.getParentLogger
+        }
+      }
+      "throw an exception when connecting to an invalid URL" in {
+        assertThrows[SQLException] {
+          driver.connect("jdbc:ksql://localhost:9999999", new Properties)
         }
       }
     }
