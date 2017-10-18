@@ -5,24 +5,19 @@ import java.sql.SQLFeatureNotSupportedException
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.reflect.runtime.universe._
 
+class KsqlStatementSpec extends WordSpec with Matchers {
 
-class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers {
+  val implementedMethods = Seq("")
 
-  val implementedMethods = Seq("getDriverName", "getDriverVersion", "getDriverMajorVersion", "getDriverMinorVersion",
-    "getJDBCMajorVersion", "getJDBCMinorVersion")
+  "A KsqlStatement" when {
 
-  "A KsqlDatabaseMetaData" when {
-
-    val metadata = new KsqlDatabaseMetaData
+    val statement = new KsqlStatement
 
     "validating specs" should {
 
-      val declaredMembers = typeOf[KsqlDatabaseMetaData].decls
-
       "throw not supported exception if not supported" in {
-        reflectMethods[KsqlDatabaseMetaData](implementedMethods, false, metadata)
+        reflectMethods[KsqlStatement](implementedMethods, false, statement)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               try {
@@ -33,14 +28,12 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers {
             }
           })
       }
-
       "work if implemented" in {
-        reflectMethods[KsqlDatabaseMetaData](implementedMethods, true, metadata)
+        reflectMethods[KsqlStatement](implementedMethods, true, statement)
           .foreach(method => {
             method()
           })
       }
     }
   }
-
 }
