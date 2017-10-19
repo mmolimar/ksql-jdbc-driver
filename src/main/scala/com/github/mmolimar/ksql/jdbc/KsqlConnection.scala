@@ -1,6 +1,6 @@
 package com.github.mmolimar.ksql.jdbc
 
-import java.sql.{Array, Blob, CallableStatement, Clob, Connection, DatabaseMetaData, NClob, PreparedStatement, SQLWarning, SQLXML, Savepoint, Statement, Struct}
+import java.sql.{Array, Blob, CallableStatement, Clob, Connection, DatabaseMetaData, NClob, PreparedStatement, ResultSet, SQLWarning, SQLXML, Savepoint, Statement, Struct}
 import java.util
 import java.util.Properties
 import java.util.concurrent.Executor
@@ -73,13 +73,21 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def rollback(savepoint: Savepoint): Unit = throw NotSupported()
 
-  override def createStatement: Statement = throw NotSupported()
+  override def createStatement: Statement = createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
 
   override def createStatement(resultSetType: Int, resultSetConcurrency: Int):
-  Statement = throw NotSupported()
+  Statement = createStatement(resultSetType, resultSetConcurrency, ResultSet.HOLD_CURSORS_OVER_COMMIT)
 
   override def createStatement(resultSetType: Int, resultSetConcurrency: Int, resultSetHoldability: Int):
-  Statement = throw NotSupported()
+  Statement = {
+    if (resultSetType != ResultSet.TYPE_FORWARD_ONLY ||
+      resultSetConcurrency != ResultSet.CONCUR_READ_ONLY ||
+      resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
+      throw NotSupported("ResultSetType, ResultSetConcurrency and ResultSetHoldability must be" +
+        " TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, HOLD_CURSORS_OVER_COMMIT respectively ")
+    }
+    new KsqlStatement(ksqlClient)
+  }
 
   override def getHoldability: Int = throw NotSupported()
 
