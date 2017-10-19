@@ -17,8 +17,14 @@ object TestUtils {
         val args = new Array[AnyRef](m.paramLists(0).size)
         for ((paramType, index) <- m.paramLists(0).zipWithIndex) {
           args(index) = paramType.info match {
-            case tof if tof == typeOf[Int] => Int.box(0)
+            case tof if tof == typeOf[Byte] => Byte.box(0)
             case tof if tof == typeOf[Boolean] => Boolean.box(false)
+            case tof if tof == typeOf[Short] => Short.box(0)
+            case tof if tof == typeOf[Int] => Int.box(0)
+            case tof if tof == typeOf[Double] => Double.box(0)
+            case tof if tof == typeOf[Long] => Long.box(0)
+            case tof if tof == typeOf[Float] => Float.box(0)
+            case tof if tof == typeOf[String] => ""
             case _ => null
           }
         }

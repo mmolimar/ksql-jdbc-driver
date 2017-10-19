@@ -12,7 +12,8 @@ import org.scalatest.{Matchers, WordSpec}
 
 class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
-  val implementedMethods = Seq("getTransactionIsolation", "setClientInfo", "isReadOnly", "isValid", "close")
+  val implementedMethods = Seq("createStatement", "getTransactionIsolation",
+    "setClientInfo", "isReadOnly", "isValid", "close")
 
   "A KsqlConnection" when {
 

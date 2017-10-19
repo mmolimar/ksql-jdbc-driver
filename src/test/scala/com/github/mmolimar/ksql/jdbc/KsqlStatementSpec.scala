@@ -1,18 +1,30 @@
 package com.github.mmolimar.ksql.jdbc
 
+import java.io.InputStream
 import java.sql.SQLFeatureNotSupportedException
+import javax.ws.rs.core.Response
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
-import org.scalatest.{Matchers, WordSpec}
+import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 
-class KsqlStatementSpec extends WordSpec with Matchers {
+class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
-  val implementedMethods = Seq("")
+  val implementedMethods = Seq("execute", "executeQuery")
 
   "A KsqlStatement" when {
 
-    val statement = new KsqlStatement
+    val mockResponse = mock[Response]
+    (mockResponse.getEntity _).expects.returns(mock[InputStream])
+
+    val mockKsqlRestClient = mock[KsqlRestClient]
+    (mockKsqlRestClient.makeQueryRequest _).expects(*)
+      .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
+      .anyNumberOfTimes
+
+    val statement = new KsqlStatement(mockKsqlRestClient)
 
     "validating specs" should {
 
@@ -36,4 +48,5 @@ class KsqlStatementSpec extends WordSpec with Matchers {
       }
     }
   }
+
 }
