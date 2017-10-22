@@ -8,15 +8,25 @@ import java.util
 import java.util.Calendar
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
+import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.client.KsqlRestClient
+import io.confluent.ksql.rest.entity.StreamedRow
 
 class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends ResultSet {
 
+  private var currentRow: Option[StreamedRow] = None
+  private var emptyRow: StreamedRow = new StreamedRow(new GenericRow, null)
+
   override def getType: Int = throw NotSupported()
 
-  override def isBeforeFirst: Boolean = throw NotSupported()
+  override def isBeforeFirst: Boolean = false
 
-  override def next: Boolean = throw NotSupported()
+  override def next: Boolean = stream.hasNext match {
+    case true =>
+      currentRow = Some(stream.next)
+      true
+    case false => false
+  }
 
   override def updateString(columnIndex: Int, x: String): Unit = throw NotSupported()
 
@@ -56,7 +66,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def updateDate(columnLabel: String, x: Date): Unit = throw NotSupported()
 
-  override def isAfterLast: Boolean = throw NotSupported()
+  override def isAfterLast: Boolean = false
 
   override def updateBoolean(columnIndex: Int, x: Boolean): Unit = throw NotSupported()
 
@@ -90,7 +100,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def last: Boolean = throw NotSupported()
 
-  override def isLast: Boolean = throw NotSupported()
+  override def isLast: Boolean = false
 
   override def getNClob(columnIndex: Int): NClob = throw NotSupported()
 
@@ -116,7 +126,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def updateBlob(columnLabel: String, inputStream: InputStream): Unit = throw NotSupported()
 
-  override def getDouble(columnIndex: Int): Double = throw NotSupported()
+  override def getDouble(columnIndex: Int): Double = getColumn(columnIndex)
 
   override def getDouble(columnLabel: String): Double = throw NotSupported()
 
@@ -124,7 +134,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def getArray(columnLabel: String): Array = throw NotSupported()
 
-  override def isFirst: Boolean = throw NotSupported()
+  override def isFirst: Boolean = currentRow.isEmpty
 
   override def getURL(columnIndex: Int): URL = throw NotSupported()
 
@@ -162,7 +172,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def rowInserted: Boolean = throw NotSupported()
 
-  override def getFloat(columnIndex: Int): Float = throw NotSupported()
+  override def getFloat(columnIndex: Int): Float = getColumn(columnIndex)
 
   override def getFloat(columnLabel: String): Float = throw NotSupported()
 
@@ -180,7 +190,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def getRow: Int = throw NotSupported()
 
-  override def getLong(columnIndex: Int): Long = throw NotSupported()
+  override def getLong(columnIndex: Int): Long = getColumn(columnIndex)
 
   override def getLong(columnLabel: String): Long = throw NotSupported()
 
@@ -200,7 +210,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def deleteRow: Unit = throw NotSupported()
 
-  override def getConcurrency: Int = throw NotSupported()
+  override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY
 
   override def updateObject(columnIndex: Int, x: scala.Any, scaleOrLength: Int): Unit = throw NotSupported()
 
@@ -232,11 +242,11 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def updateCharacterStream(columnLabel: String, reader: Reader): Unit = throw NotSupported()
 
-  override def getByte(columnIndex: Int): Byte = throw NotSupported()
+  override def getByte(columnIndex: Int): Byte = getColumn(columnIndex)
 
   override def getByte(columnLabel: String): Byte = throw NotSupported()
 
-  override def getBoolean(columnIndex: Int): Boolean = throw NotSupported()
+  override def getBoolean(columnIndex: Int): Boolean = getColumn(columnIndex)
 
   override def getBoolean(columnLabel: String): Boolean = throw NotSupported()
 
@@ -252,7 +262,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def getAsciiStream(columnLabel: String): InputStream = throw NotSupported()
 
-  override def getShort(columnIndex: Int): Short = throw NotSupported()
+  override def getShort(columnIndex: Int): Short = getColumn(columnIndex)
 
   override def getShort(columnLabel: String): Short = throw NotSupported()
 
@@ -276,7 +286,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def getNCharacterStream(columnLabel: String): Reader = throw NotSupported()
 
-  override def close: Unit = throw NotSupported()
+  override def close: Unit = stream.close
 
   override def relative(rows: Int): Boolean = throw NotSupported()
 
@@ -342,7 +352,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def getUnicodeStream(columnLabel: String): InputStream = throw NotSupported()
 
-  override def getInt(columnIndex: Int): Int = throw NotSupported()
+  override def getInt(columnIndex: Int): Int = getColumn(columnIndex)
 
   override def getInt(columnLabel: String): Int = throw NotSupported()
 
@@ -374,7 +384,7 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def first: Boolean = throw NotSupported()
 
-  override def getBytes(columnIndex: Int): scala.Array[Byte] = throw NotSupported()
+  override def getBytes(columnIndex: Int): scala.Array[Byte] = getColumn(columnIndex)
 
   override def getBytes(columnLabel: String): scala.Array[Byte] = throw NotSupported()
 
@@ -386,11 +396,28 @@ class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends Resu
 
   override def updateSQLXML(columnLabel: String, xmlObject: SQLXML): Unit = throw NotSupported()
 
-  override def getString(columnIndex: Int): String = throw NotSupported()
+  override def getString(columnIndex: Int): String = getColumn(columnIndex)
 
   override def getString(columnLabel: String): String = throw NotSupported()
 
   override def unwrap[T](iface: Class[T]): T = throw NotSupported()
 
   override def isWrapperFor(iface: Class[_]): Boolean = throw NotSupported()
+
+  private def getColumn[T <: AnyRef](columnIndex: Int): T = {
+    checkRow(columnIndex)
+    currentRow.get.getRow.getColumns.get(columnIndex).asInstanceOf[T]
+  }
+
+  private def checkRow(columnIndex: Int) = {
+    def checkIfEmpty = if (currentRow.isEmpty) throw EmptyRow()
+
+    def checkColumnBounds(columnIndex: Int) = {
+      if (columnIndex < 0 || columnIndex >= currentRow.getOrElse(emptyRow).getRow.getColumns.size)
+        throw InvalidColumn(s"Column with index ${columnIndex} does not exist")
+    }
+
+    checkIfEmpty
+    checkColumnBounds(columnIndex)
+  }
 }

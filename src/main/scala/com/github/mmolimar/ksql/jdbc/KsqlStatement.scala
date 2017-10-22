@@ -36,7 +36,6 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient) extends Statement {
   override def getMaxRows: Int = throw NotSupported()
 
   override def execute(sql: String): Boolean = {
-    ksqlClient.makeQueryRequest(fixSql(sql))
     ksqlClient.makeQueryRequest(fixSql(sql)).isSuccessful
   }
 

@@ -14,6 +14,10 @@ case class NotSupported(msg: String = "Feature not supported") extends KsqlExcep
 
 case class KsqlQueryError(msg: String = "Error executing command") extends KsqlException
 
+case class InvalidColumn(msg: String = "Invalid column") extends KsqlException
+
+case class EmptyRow(msg: String = "Current row is empty") extends KsqlException
+
 object Exceptions {
 
   implicit def wrapException(error: KsqlException): SQLException = {
@@ -24,6 +28,8 @@ object Exceptions {
       case e: InvalidProperty => new SQLException(e.name)
       case e: NotSupported => new SQLFeatureNotSupportedException(e.msg)
       case e: KsqlQueryError => new SQLException(e.msg)
+      case e: InvalidColumn => new SQLException(e.msg)
+      case e: EmptyRow => new SQLException(e.msg)
       case _ => new SQLException("Unknown KSQL Exception")
     }
   }
