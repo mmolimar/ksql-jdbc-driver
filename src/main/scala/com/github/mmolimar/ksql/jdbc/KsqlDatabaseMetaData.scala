@@ -3,17 +3,21 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql.{Connection, DatabaseMetaData, ResultSet, RowIdLifetime}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
+import com.github.mmolimar.ksql.jdbc.resultset.StaticResultSet
+import io.confluent.ksql.rest.client.KsqlRestClient
 
 
-class KsqlDatabaseMetaData extends DatabaseMetaData {
+class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends DatabaseMetaData with WrapperNotSupported {
 
   override def supportsMultipleOpenResults: Boolean = throw NotSupported()
 
   override def supportsSubqueriesInIns: Boolean = throw NotSupported()
 
-  override def getSuperTypes(catalog: String, schemaPattern: String, typeNamePattern: String): ResultSet = throw NotSupported()
+  override def getSuperTypes(catalog: String, schemaPattern: String,
+                             typeNamePattern: String): ResultSet = throw NotSupported()
 
-  override def getTablePrivileges(catalog: String, schemaPattern: String, tableNamePattern: String): ResultSet = throw NotSupported()
+  override def getTablePrivileges(catalog: String, schemaPattern: String,
+                                  tableNamePattern: String): ResultSet = throw NotSupported()
 
   override def supportsFullOuterJoins: Boolean = throw NotSupported()
 
@@ -23,9 +27,11 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def getDatabaseProductVersion: String = throw NotSupported()
 
-  override def getIndexInfo(catalog: String, schema: String, table: String, unique: Boolean, approximate: Boolean): ResultSet = throw NotSupported()
+  override def getIndexInfo(catalog: String, schema: String, table: String, unique: Boolean,
+                            approximate: Boolean): ResultSet = throw NotSupported()
 
-  override def getFunctionColumns(catalog: String, schemaPattern: String, functionNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
+  override def getFunctionColumns(catalog: String, schemaPattern: String, functionNamePattern: String,
+                                  columnNamePattern: String): ResultSet = throw NotSupported()
 
   override def supportsCatalogsInTableDefinitions: Boolean = throw NotSupported()
 
@@ -37,9 +43,11 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def storesUpperCaseQuotedIdentifiers: Boolean = throw NotSupported()
 
-  override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet = throw NotSupported()
+  override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String,
+                       types: Array[Int]): ResultSet = throw NotSupported()
 
-  override def getAttributes(catalog: String, schemaPattern: String, typeNamePattern: String, attributeNamePattern: String): ResultSet = throw NotSupported()
+  override def getAttributes(catalog: String, schemaPattern: String, typeNamePattern: String,
+                             attributeNamePattern: String): ResultSet = throw NotSupported()
 
   override def supportsStoredFunctionsUsingCallSyntax: Boolean = throw NotSupported()
 
@@ -105,7 +113,8 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def supportsGroupByBeyondSelect: Boolean = throw NotSupported()
 
-  override def getFunctions(catalog: String, schemaPattern: String, functionNamePattern: String): ResultSet = throw NotSupported()
+  override def getFunctions(catalog: String, schemaPattern: String,
+                            functionNamePattern: String): ResultSet = throw NotSupported()
 
   override def supportsSchemasInPrivilegeDefinitions: Boolean = throw NotSupported()
 
@@ -123,7 +132,9 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def allTablesAreSelectable: Boolean = throw NotSupported()
 
-  override def getCrossReference(parentCatalog: String, parentSchema: String, parentTable: String, foreignCatalog: String, foreignSchema: String, foreignTable: String): ResultSet = throw NotSupported()
+  override def getCrossReference(parentCatalog: String, parentSchema: String, parentTable: String,
+                                 foreignCatalog: String, foreignSchema: String,
+                                 foreignTable: String): ResultSet = throw NotSupported()
 
   override def getDatabaseMajorVersion: Int = throw NotSupported()
 
@@ -145,7 +156,8 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def supportsANSI92EntryLevelSQL: Boolean = throw NotSupported()
 
-  override def getProcedureColumns(catalog: String, schemaPattern: String, procedureNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
+  override def getProcedureColumns(catalog: String, schemaPattern: String, procedureNamePattern: String,
+                                   columnNamePattern: String): ResultSet = throw NotSupported()
 
   override def storesMixedCaseQuotedIdentifiers: Boolean = throw NotSupported()
 
@@ -191,17 +203,20 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def isReadOnly: Boolean = throw NotSupported()
 
-  override def getProcedures(catalog: String, schemaPattern: String, procedureNamePattern: String): ResultSet = throw NotSupported()
+  override def getProcedures(catalog: String, schemaPattern: String,
+                             procedureNamePattern: String): ResultSet = throw NotSupported()
 
   override def supportsUnionAll: Boolean = throw NotSupported()
 
   override def supportsCoreSQLGrammar: Boolean = throw NotSupported()
 
-  override def getPseudoColumns(catalog: String, schemaPattern: String, tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
+  override def getPseudoColumns(catalog: String, schemaPattern: String,
+                                tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
 
-  override def getCatalogs: ResultSet = throw NotSupported()
+  override def getCatalogs: ResultSet = new StaticResultSet[String](Iterator(Seq("tables"), Seq("streams")))
 
-  override def getSuperTables(catalog: String, schemaPattern: String, tableNamePattern: String): ResultSet = throw NotSupported()
+  override def getSuperTables(catalog: String, schemaPattern: String,
+                              tableNamePattern: String): ResultSet = throw NotSupported()
 
   override def getMaxColumnsInOrderBy: Int = throw NotSupported()
 
@@ -225,7 +240,8 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def nullsAreSortedHigh: Boolean = throw NotSupported()
 
-  override def getTables(catalog: String, schemaPattern: String, tableNamePattern: String, types: Array[String]): ResultSet = throw NotSupported()
+  override def getTables(catalog: String, schemaPattern: String,
+                         tableNamePattern: String, types: Array[String]): ResultSet = throw NotSupported()
 
   override def supportsMultipleTransactions: Boolean = throw NotSupported()
 
@@ -261,7 +277,8 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def getMaxStatements: Int = throw NotSupported()
 
-  override def getBestRowIdentifier(catalog: String, schema: String, table: String, scope: Int, nullable: Boolean): ResultSet = throw NotSupported()
+  override def getBestRowIdentifier(catalog: String, schema: String,
+                                    table: String, scope: Int, nullable: Boolean): ResultSet = throw NotSupported()
 
   override def getDriverVersion: String = KsqlDriver.version
 
@@ -275,7 +292,8 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def getSystemFunctions: String = throw NotSupported()
 
-  override def getColumnPrivileges(catalog: String, schema: String, table: String, columnNamePattern: String): ResultSet = throw NotSupported()
+  override def getColumnPrivileges(catalog: String, schema: String,
+                                   table: String, columnNamePattern: String): ResultSet = throw NotSupported()
 
   override def getDriverMinorVersion: Int = KsqlDriver.minorVersion
 
@@ -321,7 +339,8 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
 
   override def supportsPositionedDelete: Boolean = throw NotSupported()
 
-  override def getColumns(catalog: String, schemaPattern: String, tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
+  override def getColumns(catalog: String, schemaPattern: String,
+                          tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
 
   override def supportsResultSetType(`type`: Int): Boolean = throw NotSupported()
 
@@ -354,9 +373,5 @@ class KsqlDatabaseMetaData extends DatabaseMetaData {
   override def othersInsertsAreVisible(`type`: Int): Boolean = throw NotSupported()
 
   override def supportsSchemasInTableDefinitions: Boolean = throw NotSupported()
-
-  override def unwrap[T](iface: Class[T]): T = throw NotSupported()
-
-  override def isWrapperFor(iface: Class[_]): Boolean = throw NotSupported()
 
 }

@@ -20,7 +20,7 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
   def isSecured: Boolean = config.get("secured").getOrElse("false").toBoolean
 }
 
-class KsqlConnection(values: KsqlConnectionValues, properties: Properties) extends Connection {
+class KsqlConnection(values: KsqlConnectionValues, properties: Properties) extends Connection with WrapperNotSupported {
 
   private val ksqlClient = init
 
@@ -65,7 +65,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
   override def setNetworkTimeout(executor: Executor, milliseconds: Int):
   Unit = throw NotSupported()
 
-  override def getMetaData: DatabaseMetaData = throw NotSupported()
+  override def getMetaData: DatabaseMetaData = new KsqlDatabaseMetaData(ksqlClient)
 
   override def getTypeMap: util.Map[String, Class[_]] = throw NotSupported()
 
@@ -167,7 +167,4 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def commit: Unit = throw NotSupported()
 
-  override def unwrap[T](iface: Class[T]): T = throw NotSupported()
-
-  override def isWrapperFor(iface: Class[_]): Boolean = throw NotSupported()
 }
