@@ -11,11 +11,11 @@ import scala.reflect.runtime.universe._
 class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers {
 
   val implementedMethods = Seq("getDriverName", "getDriverVersion", "getDriverMajorVersion", "getDriverMinorVersion",
-    "getJDBCMajorVersion", "getJDBCMinorVersion")
+    "getJDBCMajorVersion", "getJDBCMinorVersion", "getCatalogs")
 
   "A KsqlDatabaseMetaData" when {
 
-    val metadata = new KsqlDatabaseMetaData
+    val metadata = new KsqlDatabaseMetaData(null)
 
     "validating specs" should {
 

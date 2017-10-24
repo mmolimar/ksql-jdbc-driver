@@ -1,4 +1,4 @@
-package com.github.mmolimar.ksql.jdbc
+package com.github.mmolimar.ksql.jdbc.resultset
 
 import java.io.InputStream
 import java.sql.{ResultSet, SQLException, SQLFeatureNotSupportedException}
@@ -66,15 +66,15 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         resultSet.isFirst should be(true)
         resultSet.next should be(true)
 
-        resultSet.getString(0) should be("string")
-        resultSet.getBytes(1) should be("bytes".getBytes)
-        resultSet.getBoolean(2) should be(Boolean.box(true))
-        resultSet.getByte(3) should be(Byte.box('0'))
-        resultSet.getShort(4) should be(Short.box(1))
-        resultSet.getInt(5) should be(Int.box(2))
-        resultSet.getLong(6) should be(Long.box(3L))
-        resultSet.getFloat(7) should be(Float.box(4.4f))
-        resultSet.getDouble(8) should be(Double.box(5.5d))
+        resultSet.getString(1) should be("string")
+        resultSet.getBytes(2) should be("bytes".getBytes)
+        resultSet.getBoolean(3) should be(Boolean.box(true))
+        resultSet.getByte(4) should be(Byte.box('0'))
+        resultSet.getShort(5) should be(Short.box(1))
+        resultSet.getInt(6) should be(Int.box(2))
+        resultSet.getLong(7) should be(Long.box(3L))
+        resultSet.getFloat(8) should be(Float.box(4.4f))
+        resultSet.getDouble(9) should be(Double.box(5.5d))
 
         assertThrows[SQLException] {
           resultSet.getString(1000)
@@ -95,7 +95,6 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
       }
     }
   }
-
 
 }
 

@@ -1,6 +1,6 @@
 package com.github.mmolimar.ksql.jdbc
 
-import java.sql.{Connection, SQLException, SQLFeatureNotSupportedException}
+import java.sql.{Connection, ResultSet, SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
@@ -13,7 +13,7 @@ import org.scalatest.{Matchers, WordSpec}
 class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
   val implementedMethods = Seq("createStatement", "getTransactionIsolation",
-    "setClientInfo", "isReadOnly", "isValid", "close")
+    "setClientInfo", "isReadOnly", "isValid", "close", "getMetaData")
 
   "A KsqlConnection" when {
 
@@ -56,6 +56,8 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
           .returns(RestResponse.successful[CommandStatuses]
             (new CommandStatuses(Collections.emptyMap[CommandId, CommandStatus.Status])))
         ksqlConnection.isValid(0) should be(true)
+
+        ksqlConnection.getMetaData should not be(null)
 
         (ksqlRestClient.close _).expects
         ksqlConnection.close
