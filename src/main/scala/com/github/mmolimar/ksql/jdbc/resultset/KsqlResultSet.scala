@@ -9,7 +9,7 @@ import io.confluent.ksql.rest.entity.StreamedRow
 import scala.collection.JavaConversions._
 
 
-class KsqlResultSet(private val stream: KsqlRestClient.QueryStream) extends AbstractResultSet[StreamedRow](stream) {
+class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream) extends AbstractResultSet[StreamedRow](stream) {
 
   private val emptyRow: StreamedRow = new StreamedRow(new GenericRow, null)
 

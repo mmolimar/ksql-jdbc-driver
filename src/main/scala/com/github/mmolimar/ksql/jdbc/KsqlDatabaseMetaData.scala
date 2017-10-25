@@ -4,10 +4,29 @@ import java.sql.{Connection, DatabaseMetaData, ResultSet, RowIdLifetime}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.resultset.StaticResultSet
-import io.confluent.ksql.rest.client.KsqlRestClient
+import io.confluent.ksql.rest.entity.{SourceDescription, StreamsList, TablesList}
 
+import scala.collection.JavaConverters._
 
-class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends DatabaseMetaData with WrapperNotSupported {
+object TableTypes {
+
+  sealed trait TableType {
+    def name: String
+  }
+
+  case object TABLE extends TableType {
+    val name: String = "TABLE"
+  }
+
+  case object STREAM extends TableType {
+    val name: String = "STREAM"
+  }
+
+  val tableTypes = Seq(TABLE, STREAM)
+
+}
+
+class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends DatabaseMetaData with WrapperNotSupported {
 
   override def supportsMultipleOpenResults: Boolean = throw NotSupported()
 
@@ -213,10 +232,14 @@ class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends Datab
   override def getPseudoColumns(catalog: String, schemaPattern: String,
                                 tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
 
-  override def getCatalogs: ResultSet = new StaticResultSet[String](Iterator(Seq("tables"), Seq("streams")))
+  override def getCatalogs: ResultSet = new StaticResultSet[String](Iterator.empty)
 
   override def getSuperTables(catalog: String, schemaPattern: String,
-                              tableNamePattern: String): ResultSet = throw NotSupported()
+                              tableNamePattern: String): ResultSet = {
+    validateCatalogAndSchema(catalog, schemaPattern)
+
+    new StaticResultSet[String](Iterator.empty)
+  }
 
   override def getMaxColumnsInOrderBy: Int = throw NotSupported()
 
@@ -241,7 +264,40 @@ class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends Datab
   override def nullsAreSortedHigh: Boolean = throw NotSupported()
 
   override def getTables(catalog: String, schemaPattern: String,
-                         tableNamePattern: String, types: Array[String]): ResultSet = throw NotSupported()
+                         tableNamePattern: String, types: Array[String]): ResultSet = {
+
+    validateCatalogAndSchema(catalog, schemaPattern)
+
+    types.foreach(t => if (!TableTypes.tableTypes.map(_.name).contains(t)) throw UnknownTableType(s"Unknown table type $t"))
+    val tablePattern = {
+      if (Option(tableNamePattern).getOrElse("").equals("")) ".*" else tableNamePattern
+    }.toUpperCase.r.pattern
+
+    val itTables = if (types.contains(TableTypes.TABLE.name)) {
+      val tables = ksqlConnection.executeKsqlCommand("SHOW TABLES;")
+      if (tables.isErroneous) throw KsqlCommandError(s"Error showing tables: ${tables.getErrorMessage.getMessage}")
+
+      tables.getResponse.asScala.flatMap(_.asInstanceOf[TablesList].getTables.asScala)
+        .filter(tb => tablePattern.matcher(tb.getName.toUpperCase).matches)
+        .map(tb => {
+          Seq("", "", tb.getName, TableTypes.TABLE.name, "Topic: " + tb.getTopic + ". Windowed: " + tb.getIsWindowed,
+            "", tb.getFormat, "", "", "")
+        }).toIterator
+    } else Iterator.empty
+
+    val itStreams = if (types.contains(TableTypes.STREAM.name)) {
+      val streams = ksqlConnection.executeKsqlCommand("SHOW STREAMS;")
+      if (streams.isErroneous) throw KsqlCommandError(s"Error showing streams: ${streams.getErrorMessage.getMessage}")
+
+      streams.getResponse.asScala.flatMap(_.asInstanceOf[StreamsList].getStreams.asScala)
+        .filter(tb => tablePattern.matcher(tb.getName.toUpperCase).matches)
+        .map(tb => {
+          Seq("", "", tb.getName, TableTypes.STREAM.name, "Topic: " + tb.getTopic, "", tb.getFormat, "", "", "")
+        }).toIterator
+    } else Iterator.empty
+
+    new StaticResultSet[String](itTables ++ itStreams)
+  }
 
   override def supportsMultipleTransactions: Boolean = throw NotSupported()
 
@@ -263,9 +319,12 @@ class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends Datab
 
   override def getExtraNameCharacters: String = throw NotSupported()
 
-  override def getSchemas: ResultSet = throw NotSupported()
+  override def getSchemas: ResultSet = new StaticResultSet[String](Iterator.empty)
 
-  override def getSchemas(catalog: String, schemaPattern: String): ResultSet = throw NotSupported()
+  override def getSchemas(catalog: String, schemaPattern: String): ResultSet = {
+    validateCatalogAndSchema(catalog, schemaPattern)
+    getSchemas
+  }
 
   override def supportsMultipleResultSets: Boolean = throw NotSupported()
 
@@ -329,18 +388,46 @@ class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends Datab
 
   override def supportsTransactionIsolationLevel(level: Int): Boolean = throw NotSupported()
 
-  override def getTableTypes: ResultSet = throw NotSupported()
+  override def getTableTypes: ResultSet = new StaticResultSet[String](Iterator(Seq(TableTypes.TABLE.name),
+    Seq(TableTypes.STREAM.name)))
 
   override def getMaxColumnsInTable: Int = throw NotSupported()
 
-  override def getConnection: Connection = throw NotSupported()
+  override def getConnection: Connection = ksqlConnection
 
   override def updatesAreDetected(`type`: Int): Boolean = throw NotSupported()
 
   override def supportsPositionedDelete: Boolean = throw NotSupported()
 
   override def getColumns(catalog: String, schemaPattern: String,
-                          tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
+                          tableNamePattern: String, columnNamePattern: String): ResultSet = {
+    validateCatalogAndSchema(catalog, schemaPattern)
+
+    val tables = getTables(catalog, schemaPattern, tableNamePattern, TableTypes.tableTypes.map(_.name).toArray)
+    val columnPattern = {
+      if (Option(columnNamePattern).getOrElse("").equals("")) ".*" else columnNamePattern
+    }.toUpperCase.r.pattern
+
+    var tableSchemas: Iterator[Seq[AnyRef]] = Iterator.empty
+    while (tables.next) {
+      val tableName = tables.getString(2)
+      val describe = ksqlConnection.executeKsqlCommand(s"DESCRIBE $tableName;")
+      if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName: " +
+        describe.getErrorMessage.getMessage)
+
+      tableSchemas ++= describe.getResponse.asScala.map(_.asInstanceOf[SourceDescription])
+        .flatMap(_.getSchema.asScala)
+        .filter(sch => columnPattern.matcher(sch.getName.toUpperCase).matches)
+        .map(sch => {
+          //TODO map sql data types
+          Seq[AnyRef]("", "", tableName, sch.getName, Int.box(-1), sch.getType, Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10),
+            Int.box(DatabaseMetaData.columnNullableUnknown), "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(-10), "", "", "",
+            "", "", "NO", "NO")
+
+        }).toIterator
+    }
+    new StaticResultSet[AnyRef](tableSchemas)
+  }
 
   override def supportsResultSetType(`type`: Int): Boolean = throw NotSupported()
 
@@ -373,5 +460,10 @@ class KsqlDatabaseMetaData(private val ksqlClient: KsqlRestClient) extends Datab
   override def othersInsertsAreVisible(`type`: Int): Boolean = throw NotSupported()
 
   override def supportsSchemasInTableDefinitions: Boolean = throw NotSupported()
+
+  private def validateCatalogAndSchema(catalog: String, schema: String) = {
+    if (catalog != null && catalog != "") throw UnknownCatalog(s"Unknown catalog $catalog")
+    if (schema != null && schema != "") throw UnknownSchema(s"Unknown schema $schema")
+  }
 
 }

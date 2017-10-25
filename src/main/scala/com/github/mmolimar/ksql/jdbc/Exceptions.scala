@@ -12,11 +12,19 @@ case class InvalidProperty(name: String) extends KsqlException
 
 case class NotSupported(msg: String = "Feature not supported") extends KsqlException
 
-case class KsqlQueryError(msg: String = "Error executing command") extends KsqlException
+case class KsqlQueryError(msg: String = "Error executing query") extends KsqlException
+
+case class KsqlCommandError(msg: String = "Error executing command") extends KsqlException
 
 case class InvalidColumn(msg: String = "Invalid column") extends KsqlException
 
 case class EmptyRow(msg: String = "Current row is empty") extends KsqlException
+
+case class UnknownTableType(msg: String = "Table type does not exist") extends KsqlException
+
+case class UnknownCatalog(msg: String = "Catalog does not exist") extends KsqlException
+
+case class UnknownSchema(msg: String = "Schema does not exist") extends KsqlException
 
 object Exceptions {
 
@@ -28,8 +36,12 @@ object Exceptions {
       case e: InvalidProperty => new SQLException(e.name)
       case e: NotSupported => new SQLFeatureNotSupportedException(e.msg)
       case e: KsqlQueryError => new SQLException(e.msg)
+      case e: KsqlCommandError => new SQLException(e.msg)
       case e: InvalidColumn => new SQLException(e.msg)
       case e: EmptyRow => new SQLException(e.msg)
+      case e: UnknownTableType => new SQLException(e.msg)
+      case e: UnknownCatalog => new SQLException(e.msg)
+      case e: UnknownSchema => new SQLException(e.msg)
       case _ => new SQLException("Unknown KSQL Exception")
     }
   }
