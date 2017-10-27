@@ -1,6 +1,6 @@
 package com.github.mmolimar.ksql.jdbc
 
-import java.sql.{Connection, ResultSet, SQLException, SQLFeatureNotSupportedException}
+import java.sql.{Connection, SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
@@ -57,7 +57,12 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
             (new CommandStatuses(Collections.emptyMap[CommandId, CommandStatus.Status])))
         ksqlConnection.isValid(0) should be(true)
 
-        ksqlConnection.getMetaData should not be(null)
+        ksqlConnection.getMetaData should not be (null)
+
+        ksqlConnection.createStatement should not be (null)
+        assertThrows[SQLFeatureNotSupportedException] {
+          ksqlConnection.createStatement(-1, -1)
+        }
 
         (ksqlRestClient.close _).expects
         ksqlConnection.close

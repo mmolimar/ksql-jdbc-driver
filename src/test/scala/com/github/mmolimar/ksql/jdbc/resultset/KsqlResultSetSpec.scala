@@ -80,6 +80,34 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
           resultSet.getString(1000)
         }
 
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getString("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getBytes("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getBoolean("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getByte("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getShort("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getInt("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getLong("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getFloat("UNKNOWN")
+        }
+        assertThrows[SQLFeatureNotSupportedException] {
+          resultSet.getDouble("UNKNOWN")
+        }
+
         resultSet.next should be(false)
         resultSet.isFirst should be(false)
         resultSet.close
@@ -93,6 +121,28 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
 
         class MockQueryStream extends KsqlRestClient.QueryStream(mockResponse)
       }
+    }
+  }
+
+  "A ResultSetNotSupported" when {
+
+    "validating specs" should {
+
+      "throw not supported exception if not supported" in {
+
+        val resultSet = new ResultSetNotSupported
+        reflectMethods[ResultSetNotSupported](Seq.empty, false, resultSet)
+          .foreach(method => {
+            assertThrows[SQLFeatureNotSupportedException] {
+              try {
+                method()
+              } catch {
+                case t: Throwable => throw t.getCause
+              }
+            }
+          })
+      }
+
     }
   }
 
