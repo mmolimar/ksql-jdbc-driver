@@ -232,13 +232,13 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def getPseudoColumns(catalog: String, schemaPattern: String,
                                 tableNamePattern: String, columnNamePattern: String): ResultSet = throw NotSupported()
 
-  override def getCatalogs: ResultSet = new StaticResultSet[String](Iterator.empty)
+  override def getCatalogs: ResultSet = new StaticResultSet[String](Headers.catalogs, Iterator.empty)
 
   override def getSuperTables(catalog: String, schemaPattern: String,
                               tableNamePattern: String): ResultSet = {
     validateCatalogAndSchema(catalog, schemaPattern)
 
-    new StaticResultSet[String](Iterator.empty)
+    new StaticResultSet[String](Headers.superTables, Iterator.empty)
   }
 
   override def getMaxColumnsInOrderBy: Int = throw NotSupported()
@@ -296,7 +296,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
         }).toIterator
     } else Iterator.empty
 
-    new StaticResultSet[String](itTables ++ itStreams)
+    new StaticResultSet[String](Headers.tables, itTables ++ itStreams)
   }
 
   override def supportsMultipleTransactions: Boolean = throw NotSupported()
@@ -319,7 +319,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getExtraNameCharacters: String = throw NotSupported()
 
-  override def getSchemas: ResultSet = new StaticResultSet[String](Iterator.empty)
+  override def getSchemas: ResultSet = new StaticResultSet[String](Headers.schemas, Iterator.empty)
 
   override def getSchemas(catalog: String, schemaPattern: String): ResultSet = {
     validateCatalogAndSchema(catalog, schemaPattern)
@@ -388,8 +388,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsTransactionIsolationLevel(level: Int): Boolean = throw NotSupported()
 
-  override def getTableTypes: ResultSet = new StaticResultSet[String](Iterator(Seq(TableTypes.TABLE.name),
-    Seq(TableTypes.STREAM.name)))
+  override def getTableTypes: ResultSet = new StaticResultSet[String](Headers.tableTypes,
+    Iterator(Seq(TableTypes.TABLE.name), Seq(TableTypes.STREAM.name)))
 
   override def getMaxColumnsInTable: Int = throw NotSupported()
 
@@ -419,14 +419,14 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
         .flatMap(_.getSchema.asScala)
         .filter(sch => columnPattern.matcher(sch.getName.toUpperCase).matches)
         .map(sch => {
-          //TODO map sql data types
-          Seq[AnyRef]("", "", tableName, sch.getName, Int.box(-1), sch.getType, Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10),
-            Int.box(DatabaseMetaData.columnNullableUnknown), "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(-10), "", "", "",
-            "", "", "NO", "NO")
+          Seq[AnyRef]("", "", tableName, sch.getName, Int.box(Headers.mapDataType(sch.getType)), sch.getType,
+            Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10), Int.box(DatabaseMetaData.columnNullableUnknown),
+            "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(17), "", "", "", "",
+            Int.box(Headers.mapDataType(sch.getType)), "NO", "NO")
 
         }).toIterator
     }
-    new StaticResultSet[AnyRef](tableSchemas)
+    new StaticResultSet[AnyRef](Headers.columns, tableSchemas)
   }
 
   override def supportsResultSetType(`type`: Int): Boolean = throw NotSupported()

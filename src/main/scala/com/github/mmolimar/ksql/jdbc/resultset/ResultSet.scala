@@ -406,21 +406,41 @@ abstract class AbstractResultSet[T](private val iterator: Iterator[T]) extends R
 
   override def getBoolean(columnIndex: Int): Boolean = getColumn(columnIndex)
 
+  override def getBoolean(columnLabel: String): Boolean = getColumn(columnLabel)
+
   override def getByte(columnIndex: Int): Byte = getColumn(columnIndex)
+
+  override def getByte(columnLabel: String): Byte = getColumn(columnLabel)
 
   override def getShort(columnIndex: Int): Short = getColumn(columnIndex)
 
+  override def getShort(columnLabel: String): Short = getColumn(columnLabel)
+
   override def getInt(columnIndex: Int): Int = getColumn(columnIndex)
+
+  override def getInt(columnLabel: String): Int = getColumn(columnLabel)
 
   override def getLong(columnIndex: Int): Long = getColumn(columnIndex)
 
+  override def getLong(columnLabel: String): Long = getColumn(columnLabel)
+
   override def getFloat(columnIndex: Int): Float = getColumn(columnIndex)
+
+  override def getFloat(columnLabel: String): Float = getColumn(columnLabel)
 
   override def getDouble(columnIndex: Int): Double = getColumn(columnIndex)
 
+  override def getDouble(columnLabel: String): Double = getColumn(columnLabel)
+
   override def getBytes(columnIndex: Int): scala.Array[Byte] = getColumn(columnIndex)
 
+  override def getBytes(columnLabel: String): scala.Array[Byte] = getColumn(columnLabel)
+
   override def getString(columnIndex: Int): String = getColumn(columnIndex)
+
+  override def getString(columnLabel: String): String = getColumn(columnLabel)
+
+  private def getColumn[T <: AnyRef](columnLabel: String): T = getColumn(getColumnIndex(columnLabel))
 
   private def getColumn[T <: AnyRef](columnIndex: Int): T = {
     checkRow(columnIndex)
@@ -445,4 +465,6 @@ abstract class AbstractResultSet[T](private val iterator: Iterator[T]) extends R
   protected def getColumnBounds: (Int, Int)
 
   protected def getValue[T <: AnyRef](columnIndex: Int): T
+
+  protected def getColumnIndex(columnLabel: String): Int
 }

@@ -2,12 +2,13 @@ package com.github.mmolimar.ksql.jdbc.resultset
 
 import java.sql.ResultSet
 
+import com.github.mmolimar.ksql.jdbc.Exceptions._
+import com.github.mmolimar.ksql.jdbc.NotSupported
 import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.client.KsqlRestClient
 import io.confluent.ksql.rest.entity.StreamedRow
 
 import scala.collection.JavaConversions._
-
 
 class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream) extends AbstractResultSet[StreamedRow](stream) {
 
@@ -30,4 +31,7 @@ class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream) extend
   override protected def getValue[T <: AnyRef](columnIndex: Int): T = {
     currentRow.get.getRow.getColumns.get(columnIndex - 1).asInstanceOf[T]
   }
+
+  override protected def getColumnIndex(columnLabel: String): Int = throw NotSupported()
+
 }
