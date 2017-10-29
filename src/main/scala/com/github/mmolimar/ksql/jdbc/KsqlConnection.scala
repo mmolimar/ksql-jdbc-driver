@@ -33,6 +33,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
       case Failure(e) => throw CannotConnect(values.ksqlServer, e.getMessage)
+      case _ =>
     }
   }
 
