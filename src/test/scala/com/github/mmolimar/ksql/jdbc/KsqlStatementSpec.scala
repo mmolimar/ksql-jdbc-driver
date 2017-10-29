@@ -6,7 +6,7 @@ import javax.ws.rs.core.Response
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
-import io.confluent.ksql.rest.entity.ErrorMessage
+import io.confluent.ksql.rest.entity.{ErrorMessage, KsqlEntityList}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -43,17 +43,20 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
           })
       }
       "work if implemented" in {
-        (mockKsqlRestClient.makeQueryRequest _).expects(*)
-          .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
+        (mockKsqlRestClient.makeKsqlRequest _).expects(*)
+          .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
+          .once
         statement.execute("") should be(true)
 
         (mockKsqlRestClient.makeQueryRequest _).expects(*)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
+          .once
         statement.executeQuery("") should not be (null)
 
         assertThrows[SQLException] {
           (mockKsqlRestClient.makeQueryRequest _).expects(*)
             .returns(RestResponse.erroneous(new ErrorMessage(null, null)))
+            .once
           statement.executeQuery("")
         }
       }

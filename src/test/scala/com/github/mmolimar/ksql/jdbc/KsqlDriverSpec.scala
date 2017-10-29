@@ -32,7 +32,7 @@ class KsqlDriverSpec extends WordSpec with Matchers {
       }
     }
     "accepting an URL" should {
-      val driver = new KsqlDriver()
+      val driver = new KsqlDriver
       "return false if invalid" in {
         driver.acceptsURL(null) shouldBe (false)
         driver.acceptsURL("") shouldBe (false)
