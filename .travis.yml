@@ -1,3 +1,5 @@
+before_install:
+  - git clone https://github.com/confluentinc/ksql.git && cd ksql && git checkout 0.1.x && mvn clean install
 script:
   - sbt clean coverage test coverageReport && sbt coverageAggregate
 after_success:
