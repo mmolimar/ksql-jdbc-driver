@@ -16,7 +16,9 @@ class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailableP
     "listeners" -> s"http://localhost:$port",
     "ksql.cluster.id" -> "ksql-jdbc",
     "application.id" -> "test",
-    "auto.offset.reset" -> "earliest",
+    "ksql.command.consumer.client.id" -> "ksql-jdbc-driver",
+    "ksql.command.consumer.auto.offset.reset" -> "earliest",
+    "ksql.command.consumer.session.timeout.ms" -> "10000",
     "ksql.command.topic.suffix" -> "commands"
   ))
 

@@ -37,11 +37,13 @@ class StaticResultSetSpec extends WordSpec with Matchers with MockFactory with O
         val resultSet = new StaticResultSet[String](Headers.tableTypes, Iterator(Seq(TableTypes.TABLE.name),
           Seq(TableTypes.STREAM.name)))
         resultSet.next should be(true)
-        resultSet.getString(0) should be(TableTypes.TABLE.name)
+        resultSet.getString(1) should be(TableTypes.TABLE.name)
         resultSet.getString("TABLE_TYPE") should be(TableTypes.TABLE.name)
+        resultSet.getString("table_type") should be(TableTypes.TABLE.name)
         resultSet.next should be(true)
-        resultSet.getString(0) should be(TableTypes.STREAM.name)
+        resultSet.getString(1) should be(TableTypes.STREAM.name)
         resultSet.getString("TABLE_TYPE") should be(TableTypes.STREAM.name)
+        resultSet.getString("table_type") should be(TableTypes.STREAM.name)
         assertThrows[SQLException] {
           resultSet.getString("UNKNOWN")
         }

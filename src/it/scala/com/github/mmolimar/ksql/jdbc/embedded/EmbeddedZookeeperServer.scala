@@ -4,7 +4,7 @@ import java.io.{File, IOException}
 import java.net.InetSocketAddress
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils
-import kafka.utils.{CoreUtils, Logging}
+import kafka.utils.Logging
 import org.apache.zookeeper.server.{ServerCnxnFactory, ZooKeeperServer}
 
 class EmbeddedZookeeperServer(private val port: Int = TestUtils.getAvailablePort,

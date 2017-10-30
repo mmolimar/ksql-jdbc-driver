@@ -6,7 +6,7 @@ import java.util.Properties
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils
 import kafka.admin.AdminUtils
 import kafka.server.{KafkaConfig, KafkaServer}
-import kafka.utils.{CoreUtils, Logging, ZkUtils}
+import kafka.utils.{Logging, ZkUtils}
 
 class EmbeddedKafkaCluster(zkConnection: String,
                            ports: Seq[Int] = Seq(TestUtils.getAvailablePort),

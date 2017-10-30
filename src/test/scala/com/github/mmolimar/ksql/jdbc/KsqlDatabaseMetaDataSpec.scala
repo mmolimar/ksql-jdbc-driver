@@ -67,38 +67,42 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
           .anyNumberOfTimes
 
-        metadata.getConnection should not be (null)
+        Option(metadata.getConnection) should not be (None)
         metadata.getCatalogs.next should be(false)
 
         val tableTypes = metadata.getTableTypes
         tableTypes.next should be(true)
-        tableTypes.getString(0) should be(TableTypes.TABLE.name)
+        tableTypes.getString(1) should be(TableTypes.TABLE.name)
+        tableTypes.getString("TABLE_TYPE") should be(TableTypes.TABLE.name)
+        tableTypes.getString("table_type") should be(TableTypes.TABLE.name)
         tableTypes.next should be(true)
-        tableTypes.getString(0) should be(TableTypes.STREAM.name)
+        tableTypes.getString(1) should be(TableTypes.STREAM.name)
+        tableTypes.getString("TABLE_TYPE") should be(TableTypes.STREAM.name)
+        tableTypes.getString("table_type") should be(TableTypes.STREAM.name)
         tableTypes.next should be(false)
 
         metadata.getSchemas.next should be(false)
         metadata.getSchemas("", "").next should be(false)
-        assertThrows[SQLException]{
+        assertThrows[SQLException] {
           metadata.getSchemas("test", "")
         }
-        assertThrows[SQLException]{
+        assertThrows[SQLException] {
           metadata.getSchemas("", "test")
         }
 
         metadata.getSuperTables("", "", "test").next should be(false)
-        assertThrows[SQLException]{
+        assertThrows[SQLException] {
           metadata.getSuperTables("test", "", "test")
         }
-        assertThrows[SQLException]{
+        assertThrows[SQLException] {
           metadata.getSuperTables("", "test", "test")
         }
 
         metadata.getColumns("", "", "", "").next should be(false)
-        assertThrows[SQLException]{
+        assertThrows[SQLException] {
           metadata.getColumns("test", "", "test", "test")
         }
-        assertThrows[SQLException]{
+        assertThrows[SQLException] {
           metadata.getColumns("", "test", "test", "test")
         }
 

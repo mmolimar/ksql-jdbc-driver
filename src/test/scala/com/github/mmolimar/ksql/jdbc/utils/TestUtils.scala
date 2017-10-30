@@ -63,7 +63,7 @@ object TestUtils extends Logging {
     } catch {
       case ioe: IOException => false
     }
-    finally if (ss != null) ss.close()
+    finally if (Option(ss) != None) ss.close()
   }
 
   def buildProducer(brokerList: String, compression: String = "none"): KafkaProducer[Array[Byte], Array[Byte]] = {
@@ -142,16 +142,16 @@ object TestUtils extends Logging {
         val args = new Array[AnyRef](if (m.paramLists.size == 0) 0 else m.paramLists(0).size)
         if (m.paramLists.size > 0)
           for ((paramType, index) <- m.paramLists(0).zipWithIndex) {
-            args(index) = paramType.info match {
-              case tof if tof == typeOf[Byte] => Byte.box(0)
-              case tof if tof == typeOf[Boolean] => Boolean.box(false)
-              case tof if tof == typeOf[Short] => Short.box(0)
-              case tof if tof == typeOf[Int] => Int.box(0)
-              case tof if tof == typeOf[Double] => Double.box(0)
-              case tof if tof == typeOf[Long] => Long.box(0)
-              case tof if tof == typeOf[Float] => Float.box(0)
-              case tof if tof == typeOf[String] => ""
-              case _ => null
+            args(index) = paramType.info.typeSymbol match {
+              case tof if tof == typeOf[Byte].typeSymbol => Byte.box(0)
+              case tof if tof == typeOf[Boolean].typeSymbol => Boolean.box(false)
+              case tof if tof == typeOf[Short].typeSymbol => Short.box(0)
+              case tof if tof == typeOf[Int].typeSymbol => Int.box(0)
+              case tof if tof == typeOf[Double].typeSymbol => Double.box(0)
+              case tof if tof == typeOf[Long].typeSymbol => Long.box(0)
+              case tof if tof == typeOf[Float].typeSymbol => Float.box(0)
+              case tof if tof == typeOf[String].typeSymbol => ""
+              case e => null
             }
           }
 

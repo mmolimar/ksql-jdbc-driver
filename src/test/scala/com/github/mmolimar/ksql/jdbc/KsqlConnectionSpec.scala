@@ -57,9 +57,9 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
             (new CommandStatuses(Collections.emptyMap[CommandId, CommandStatus.Status])))
         ksqlConnection.isValid(0) should be(true)
 
-        ksqlConnection.getMetaData should not be (null)
+        Option(ksqlConnection.getMetaData) should not be (None)
 
-        ksqlConnection.createStatement should not be (null)
+        Option(ksqlConnection.createStatement) should not be (None)
         assertThrows[SQLFeatureNotSupportedException] {
           ksqlConnection.createStatement(-1, -1)
         }

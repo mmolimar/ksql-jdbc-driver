@@ -42,6 +42,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
             }
           })
       }
+
       "work if implemented" in {
         (mockKsqlRestClient.makeKsqlRequest _).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
@@ -51,7 +52,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         (mockKsqlRestClient.makeQueryRequest _).expects(*)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
           .once
-        statement.executeQuery("") should not be (null)
+        Option(statement.executeQuery("")) should not be (None)
 
         assertThrows[SQLException] {
           (mockKsqlRestClient.makeQueryRequest _).expects(*)
