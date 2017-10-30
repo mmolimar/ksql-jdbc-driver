@@ -2,6 +2,8 @@ package com.github.mmolimar.ksql.jdbc
 
 import java.sql.Types
 
+import scala.collection.immutable
+
 
 case class HeaderField(name: String, jdbcType: Int, length: Int, index: Int) {
   def this(name: String, jdbcType: Int, length: Int) = this(name, jdbcType, length, -1)
@@ -81,9 +83,22 @@ object Headers {
 
   private implicit def toMap(headers: Seq[HeaderField]): Map[String, HeaderField] = {
     headers.zipWithIndex.map { case (header, index) => {
-      (header.name, HeaderField(header.name, header.jdbcType, header.length, index))
+      (header.name, HeaderField(header.name, header.jdbcType, header.length, index + 1))
     }
-    }.toMap
+    }.toCaseInsensitiveMap
+  }
+
+  private implicit class ToTreeMap[+A](tuples: TraversableOnce[A]) {
+
+    def toCaseInsensitiveMap[U](implicit ev: A <:< (String, U)): immutable.Map[String, U] = {
+      val b = immutable.TreeMap.newBuilder[String, U](new Ordering[String] {
+        def compare(x: String, y: String): Int = String.CASE_INSENSITIVE_ORDER.compare(x.toString, y.toString)
+      })
+      for (x <- tuples)
+        b += x
+
+      b.result()
+    }
   }
 
 }
