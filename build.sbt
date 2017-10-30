@@ -12,7 +12,7 @@ resolvers += "Confluent Maven Repo" at "http://packages.confluent.io/maven/"
 resolvers += Resolver.mavenLocal
 
 libraryDependencies += "io.confluent.ksql" % "ksql-rest-app" % "0.1-SNAPSHOT"
-libraryDependencies += "org.apache.kafka" %% "kafka" % "0.11.0.1" % "test"
+libraryDependencies += "org.apache.kafka" %% "kafka" % "0.11.0.0-cp1" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % "test"
 
