@@ -14,6 +14,17 @@ class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream) extend
 
   private val emptyRow: StreamedRow = new StreamedRow(new GenericRow, null)
 
+  override def next: Boolean = stream.hasNext match {
+    case true =>
+      stream.next match {
+        case record if Option(record.getRow) == None => false
+        case record =>
+          currentRow = Some(record)
+          true
+      }
+    case false => false
+  }
+
   override def isBeforeFirst: Boolean = false
 
   override def isAfterLast: Boolean = false
@@ -26,7 +37,7 @@ class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream) extend
 
   override def close: Unit = stream.close
 
-  override protected def getColumnBounds: (Int, Int) = (0, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
+  override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
 
   override protected def getValue[T <: AnyRef](columnIndex: Int): T = {
     currentRow.get.getRow.getColumns.get(columnIndex - 1).asInstanceOf[T]

@@ -1,6 +1,6 @@
 package com.github.mmolimar.ksql.jdbc
 
-import java.sql.{Connection, DatabaseMetaData, ResultSet, RowIdLifetime}
+import java.sql.{Connection, DatabaseMetaData, ResultSet, RowIdLifetime, Types}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.resultset.StaticResultSet
@@ -410,10 +410,26 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
     var tableSchemas: Iterator[Seq[AnyRef]] = Iterator.empty
     while (tables.next) {
-      val tableName = tables.getString(2)
+      val tableName = tables.getString(3)
       val describe = ksqlConnection.executeKsqlCommand(s"DESCRIBE $tableName;")
       if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName: " +
         describe.getErrorMessage.getMessage)
+
+      //generated fields from KSQL engine
+      var defaultFields: Iterator[Seq[AnyRef]] = Iterator.empty
+      if (columnPattern.matcher("_ID").matches) {
+        defaultFields ++= Iterator(Seq[AnyRef]("", "", tableName, "_ID", Int.box(Types.BIGINT), "BIGINT",
+          Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10), Int.box(DatabaseMetaData.columnNullableUnknown),
+          "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(17), "", "", "", "",
+          Int.box(Types.BIGINT), "YES", "YES"))
+      }
+      if (columnPattern.matcher("_NAME").matches) {
+        defaultFields ++= Iterator(Seq[AnyRef]("", "", tableName, "_NAME", Int.box(Types.VARCHAR), "VARCHAR",
+          Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10), Int.box(DatabaseMetaData.columnNullableUnknown),
+          "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(17), "", "", "", "",
+          Int.box(Types.VARCHAR), "YES", "YES"))
+      }
+      tableSchemas ++= defaultFields
 
       tableSchemas ++= describe.getResponse.asScala.map(_.asInstanceOf[SourceDescription])
         .flatMap(_.getSchema.asScala)
