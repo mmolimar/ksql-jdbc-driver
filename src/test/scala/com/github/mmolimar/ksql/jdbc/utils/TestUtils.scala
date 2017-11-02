@@ -1,6 +1,7 @@
 package com.github.mmolimar.ksql.jdbc.utils
 
 import java.io.{File, FileNotFoundException, IOException}
+import java.lang.reflect.InvocationTargetException
 import java.net.{InetSocketAddress, ServerSocket}
 import java.nio.channels.ServerSocketChannel
 import java.util
@@ -133,15 +134,15 @@ object TestUtils extends Logging {
     } yield baseClass.typeSignature.decls
 
     declarations.flatten
-      .filter(_.overrides.size > 0)
+      .filter(_.overrides.nonEmpty)
       .filter(ms => implementedMethods.contains(ms.name.toString) == implemented)
       .map(_.asMethod)
       .filter(!_.isProtected)
       .map(m => {
 
-        val args = new Array[AnyRef](if (m.paramLists.size == 0) 0 else m.paramLists(0).size)
-        if (m.paramLists.size > 0)
-          for ((paramType, index) <- m.paramLists(0).zipWithIndex) {
+        val args = new Array[AnyRef](if (m.paramLists.isEmpty) 0 else m.paramLists.head.size)
+        if (m.paramLists.nonEmpty)
+          for ((paramType, index) <- m.paramLists.head.zipWithIndex) {
             args(index) = paramType.info.typeSymbol match {
               case tof if tof == typeOf[Byte].typeSymbol => Byte.box(0)
               case tof if tof == typeOf[Boolean].typeSymbol => Boolean.box(false)
@@ -157,7 +158,12 @@ object TestUtils extends Logging {
 
         val mirror = runtimeMirror(classTag[T].runtimeClass.getClassLoader).reflect(obj)
         val method = mirror.reflectMethod(m)
-        () => method(args: _*)
+        () =>try {
+            method(args: _*)
+          }catch{
+            case t: InvocationTargetException => throw t.getCause
+          }
+
       })
   }
 

@@ -23,11 +23,7 @@ class StaticResultSetSpec extends WordSpec with Matchers with MockFactory with O
         reflectMethods[StaticResultSet[String]](implementedMethods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-              try {
                 method()
-              } catch {
-                case t: Throwable => throw t.getCause
-              }
             }
           })
       }

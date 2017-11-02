@@ -28,11 +28,7 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         reflectMethods[KsqlConnection](implementedMethods, false, ksqlConnection)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-              try {
                 method()
-              } catch {
-                case t: Throwable => throw t.getCause
-              }
             }
           })
       }

@@ -30,11 +30,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         reflectMethods[KsqlResultSet](implementedMethods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-              try {
                 method()
-              } catch {
-                case t: Throwable => throw t.getCause
-              }
             }
           })
       }
@@ -134,11 +130,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         reflectMethods[ResultSetNotSupported](Seq.empty, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-              try {
                 method()
-              } catch {
-                case t: Throwable => throw t.getCause
-              }
             }
           })
       }

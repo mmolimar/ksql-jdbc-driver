@@ -34,11 +34,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         reflectMethods[KsqlStatement](implementedMethods, false, statement)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-              try {
                 method()
-              } catch {
-                case t: Throwable => throw t.getCause
-              }
             }
           })
       }
