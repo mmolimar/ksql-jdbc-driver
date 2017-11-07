@@ -41,11 +41,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         reflectMethods[KsqlDatabaseMetaData](implementedMethods, false, metadata)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-              try {
                 method()
-              } catch {
-                case t: Throwable => throw t.getCause
-              }
             }
           })
       }
