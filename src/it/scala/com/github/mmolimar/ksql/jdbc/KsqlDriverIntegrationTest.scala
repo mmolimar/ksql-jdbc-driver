@@ -17,7 +17,7 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
 
   val kafkaProducer = TestUtils.buildProducer(kafkaCluster.getBrokerList)
 
-  val ksqlUrl = s"jdbc:ksql://localhost:${ksqlEngine.getPort}"
+  val ksqlUrl = s"jdbc:ksql://localhost:${ksqlEngine.getPort}?timeout=20000"
   var ksqlConnection: Connection = _
   val topic = TestUtils.randomString()
 
@@ -232,7 +232,7 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
   private def createTestTableOrStream(str: String, isStream: Boolean = false) = {
     ksqlConnection.createStatement.execute(s"CREATE ${if (isStream) "STREAM" else "TABLE"} $str " +
       s"(FIELD1 INT, FIELD2 DOUBLE, FIELD3 VARCHAR) " +
-      s"WITH (KAFKA_TOPIC='$topic', VALUE_FORMAT='JSON');") should be(true)
+      s"WITH (KAFKA_TOPIC='$topic', VALUE_FORMAT='JSON', KEY='FIELD1');") should be(true)
   }
 
   override def beforeAll = {
