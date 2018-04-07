@@ -6,7 +6,8 @@ import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.resultset.KsqlResultSet
 import io.confluent.ksql.rest.client.KsqlRestClient
 
-class KsqlStatement(private val ksqlClient: KsqlRestClient) extends Statement with WrapperNotSupported {
+class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 0)
+  extends Statement with WrapperNotSupported {
 
   override def setMaxFieldSize(max: Int): Unit = throw NotSupported()
 
@@ -104,6 +105,6 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient) extends Statement wi
 
   private def fixSql(sql: String) = if (sql.trim.endsWith(";")) sql else sql + ";"
 
-  private implicit def toResultSet(stream: KsqlRestClient.QueryStream): ResultSet = new KsqlResultSet(stream)
+  private implicit def toResultSet(stream: KsqlRestClient.QueryStream): ResultSet = new KsqlResultSet(stream, timeout)
 
 }

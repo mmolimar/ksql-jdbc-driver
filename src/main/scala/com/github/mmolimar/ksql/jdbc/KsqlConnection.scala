@@ -12,12 +12,16 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[String, String]) {
+
   def getKsqlUrl: String = {
     val protocol = if (isSecured) "https://" else "http://"
     protocol + ksqlServer + ":" + port
   }
 
-  def isSecured: Boolean = config.get("secured").getOrElse("false").toBoolean
+  def isSecured: Boolean = config.getOrElse("secured", "false").toBoolean
+
+  def timeout: Long = config.getOrElse("timeout", "0").toLong
+
 }
 
 class KsqlConnection(values: KsqlConnectionValues, properties: Properties) extends Connection with WrapperNotSupported {
@@ -88,7 +92,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
       throw NotSupported("ResultSetType, ResultSetConcurrency and ResultSetHoldability must be" +
         " TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, HOLD_CURSORS_OVER_COMMIT respectively ")
     }
-    new KsqlStatement(ksqlClient)
+    new KsqlStatement(ksqlClient, values.timeout)
   }
 
   override def getHoldability: Int = throw NotSupported()
