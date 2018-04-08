@@ -10,11 +10,11 @@ perform queries to Kafka and then, the engine translates those requests to Kafka
 
 ### Building from source ###
 
-First of all, the KSQL lib has to be installed into your local repo (till now, there isn't a release available).
+First of all, the KSQL lib has to be installed into your local repo.
 
 So, cloning the KSQL repo:
 
-``git clone https://github.com/confluentinc/ksql.git && cd ksql && git checkout 0.1.x``
+``git clone https://github.com/confluentinc/ksql.git && cd ksql && git checkout 4.1.x``
 
 and installing it:
 
@@ -57,15 +57,16 @@ where:
 
 * **\<ksql-engine>**: represents the KSQL engine host.
 * **\<port>**: is the KSQL engine port.
-* **\<propertyN>**: are the custom client properties (optionals). Fow now, there is only one property and it's to
-set if the KSQL connection is secured or not. The property name is ``secured`` and its value is a boolean
-(``true``|``false``). Its default value is ``false``.
+* **\<propertyN>**: are the custom client properties (optionals). Available properties:
+  * ``secured``: sets if the KSQL connection is secured or not. It's a boolean (``true``|``false``) and its default
+  value is ``false``.
+  * ``timeout``: sets the max wait time between each message when receiving them. It's a long and its default
+  value is ``0`` which means that is infinite.
 
 ## TODO's
 
 - [ ] Standalone mode: connecting directly to Kafka brokers.
 - [ ] Make the driver more compliant with the JDBC spec.
-- [ ] Enable a timeout when waiting for messages in a query.
 
 ## Contribute
 
