@@ -14,11 +14,17 @@ First of all, the KSQL lib has to be installed into your local repo.
 
 So, cloning the KSQL repo:
 
-``git clone https://github.com/confluentinc/ksql.git && cd ksql && git checkout 4.1.x``
+``git clone https://github.com/confluentinc/ksql.git && cd ksql && git v4.1.0-rc3``
 
 and installing it:
 
 ``mvn clean install -Dmaven.skip.test=true``
+
+Probably, you'll have to do the same things for these Confluent projects (previous to the KSQL project installation):
+* [Confluent common](https://github.com/confluentinc/common.git)
+* [Confluent support-metrics-common](https://github.com/confluentinc/support-metrics-common.git)
+* [Confluent rest-utils](https://github.com/confluentinc/rest-utils.git)
+* [Confluent schema-registry](https://github.com/confluentinc/schema-registry.git)
 
 Once you did that, just have to clone the ksql-jdbc-driver repo and package it:
  
