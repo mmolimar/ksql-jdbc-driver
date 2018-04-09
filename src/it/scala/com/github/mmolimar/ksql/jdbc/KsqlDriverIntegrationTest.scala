@@ -15,7 +15,7 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
   val kafkaCluster = new EmbeddedKafkaCluster(zkServer.getConnection)
   val ksqlEngine = new EmbeddedKsqlEngine(kafkaCluster.getBrokerList)
 
-  val kafkaProducer = TestUtils.buildProducer(kafkaCluster.getBrokerList)
+  lazy val kafkaProducer = TestUtils.buildProducer(kafkaCluster.getBrokerList)
 
   val ksqlUrl = s"jdbc:ksql://localhost:${ksqlEngine.getPort}?timeout=20000"
   var ksqlConnection: Connection = _
@@ -224,7 +224,7 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
         |}
       """.stripMargin.getBytes
     val record = new ProducerRecord[Array[Byte], Array[Byte]](topic, key, value)
-    kafkaProducer.send(record).get(1000, TimeUnit.MILLISECONDS)
+    kafkaProducer.send(record).get(10000, TimeUnit.MILLISECONDS)
     Thread.sleep(100)
 
   }
