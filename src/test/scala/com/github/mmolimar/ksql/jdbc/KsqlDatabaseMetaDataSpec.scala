@@ -2,12 +2,12 @@ package com.github.mmolimar.ksql.jdbc
 
 import java.io.InputStream
 import java.sql.{SQLException, SQLFeatureNotSupportedException}
-import java.util.Properties
+import java.util.{Collections, Properties}
 import javax.ws.rs.core.Response
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
-import io.confluent.ksql.rest.entity.KsqlEntityList
+import io.confluent.ksql.rest.entity.{ErrorMessage, KsqlEntityList}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -41,7 +41,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         reflectMethods[KsqlDatabaseMetaData](implementedMethods, false, metadata)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-                method()
+              method()
             }
           })
       }
@@ -59,9 +59,24 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         (mockKsqlRestClient.makeQueryRequest _).expects(*)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
           .anyNumberOfTimes
+
+        (mockKsqlRestClient.makeKsqlRequest _).expects(*)
+          .returns(RestResponse.erroneous(new ErrorMessage("error message", Collections.emptyList[String])))
+          .once
+
+        assertThrows[SQLException] {
+          metadata.getTables("", "", "", Array[String]("test"))
+        }
+        assertThrows[SQLException] {
+          metadata.getTables("", "", "", Array[String](TableTypes.TABLE.name))
+        }
+
         (mockKsqlRestClient.makeKsqlRequest _).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
           .anyNumberOfTimes
+
+        metadata.getTables("", "", "[a-z]*",
+          Array[String](TableTypes.TABLE.name, TableTypes.STREAM.name)).next should be(false)
 
         Option(metadata.getConnection) should not be (None)
         metadata.getCatalogs.next should be(false)
@@ -101,9 +116,6 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         assertThrows[SQLException] {
           metadata.getColumns("", "test", "test", "test")
         }
-
-        metadata.getTables("", "", "[a-z]*",
-          Array[String](TableTypes.TABLE.name, TableTypes.STREAM.name)).next should be(false)
 
       }
     }
