@@ -8,10 +8,12 @@ import java.util
 import java.util.{Properties, Random, UUID}
 
 import kafka.utils.Logging
+import kafka.zk.KafkaZkClient
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
 import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig}
 import org.apache.kafka.common.serialization.{ByteArrayDeserializer, ByteArraySerializer}
+import org.apache.kafka.common.utils.Time
 
 import scala.reflect.runtime.universe._
 import scala.reflect.{ClassTag, _}
@@ -101,6 +103,9 @@ object TestUtils extends Logging {
     AdminClient.create(config)
   }
 
+  def buildZkClient(zkConnection: String): KafkaZkClient =
+    KafkaZkClient(zkConnection, false, 6000, 10000, Int.MaxValue, Time.SYSTEM)
+
   @throws[FileNotFoundException]
   def deleteFile(path: File): Boolean = {
     if (!path.exists) throw new FileNotFoundException(path.getAbsolutePath)
@@ -116,11 +121,11 @@ object TestUtils extends Logging {
     if (!numbers) str.replaceAll("[0-9]", "") else str
   }
 
-  def swallow(log: (Object, Throwable) => Unit = logger.warn, action: => Unit) {
+  def swallow(action: => Unit) {
     try {
       action
     } catch {
-      case e: Throwable => log(e.getMessage(), e)
+      case e: Throwable => logger.warn(e.getMessage, e)
     }
   }
 
@@ -158,9 +163,10 @@ object TestUtils extends Logging {
 
         val mirror = runtimeMirror(classTag[T].runtimeClass.getClassLoader).reflect(obj)
         val method = mirror.reflectMethod(m)
-        () =>try {
+        () =>
+          try {
             method(args: _*)
-          }catch{
+          } catch {
             case t: InvocationTargetException => throw t.getCause
           }
 

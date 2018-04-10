@@ -4,6 +4,7 @@ import java.io.IOException
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils
 import io.confluent.ksql.rest.server.{KsqlRestApplication, KsqlRestConfig}
+import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent
 import kafka.utils.Logging
 import org.apache.kafka.clients.producer.ProducerConfig
 
@@ -22,7 +23,7 @@ class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailableP
     "ksql.command.topic.suffix" -> "commands"
   ))
 
-  lazy val ksqlEngine = KsqlRestApplication.buildApplication(config, true)
+  lazy val ksqlEngine = KsqlRestApplication.buildApplication(config, true, new KsqlVersionCheckerAgent)
 
   @throws[IOException]
   def startup = {

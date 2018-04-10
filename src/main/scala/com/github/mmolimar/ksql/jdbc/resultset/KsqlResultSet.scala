@@ -9,20 +9,35 @@ import io.confluent.ksql.rest.client.KsqlRestClient
 import io.confluent.ksql.rest.entity.StreamedRow
 
 import scala.collection.JavaConversions._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future, TimeoutException}
+import scala.util.{Failure, Success, Try}
 
-class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream) extends AbstractResultSet[StreamedRow](stream) {
+class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream, val timeout: Long = 0)
+  extends AbstractResultSet[StreamedRow](stream) {
 
   private val emptyRow: StreamedRow = new StreamedRow(new GenericRow, null)
 
-  override def next: Boolean = stream.hasNext match {
-    case true =>
-      stream.next match {
-        case record if Option(record.getRow) == None => false
-        case record =>
-          currentRow = Some(record)
-          true
-      }
-    case false => false
+  private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
+
+  override def next: Boolean = {
+    def hasNext = stream.hasNext match {
+      case true =>
+        stream.next match {
+          case record if Option(record.getRow) == None => false
+          case record =>
+            currentRow = Some(record)
+            true
+        }
+      case false => false
+    }
+
+    Try(Await.result(Future(hasNext), waitDuration)) match {
+      case Success(r) => r
+      case Failure(_: TimeoutException) => false
+      case Failure(e) => throw e
+    }
   }
 
   override def isBeforeFirst: Boolean = false

@@ -4,9 +4,9 @@ import java.io.File
 import java.util.Properties
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils
-import kafka.admin.AdminUtils
 import kafka.server.{KafkaConfig, KafkaServer}
-import kafka.utils.{Logging, ZkUtils}
+import kafka.utils.Logging
+import kafka.zk.AdminZkClient
 
 class EmbeddedKafkaCluster(zkConnection: String,
                            ports: Seq[Int] = Seq(TestUtils.getAvailablePort),
@@ -16,6 +16,9 @@ class EmbeddedKafkaCluster(zkConnection: String,
 
   private var brokers: Seq[KafkaServer] = Seq.empty
   private var logDirs: Seq[File] = Seq.empty
+
+  private lazy val zkClient = TestUtils.buildZkClient(zkConnection)
+  private lazy val adminZkClient = new AdminZkClient(zkClient)
 
   def startup = {
     info("Starting up embedded Kafka brokers")
@@ -58,21 +61,19 @@ class EmbeddedKafkaCluster(zkConnection: String,
 
   def createTopic(topic: String, numPartitions: Int = 1, replicationFactor: Int = 1) = {
     info(s"Creating topic $topic")
-    AdminUtils.createTopic(getZkUtils, topic, numPartitions, replicationFactor)
+    adminZkClient.createTopic(topic, numPartitions, replicationFactor)
   }
 
   def deleteTopic(topic: String) {
     info(s"Deleting topic $topic")
-    AdminUtils.deleteTopic(getZkUtils, topic)
+    adminZkClient.deleteTopic(topic)
   }
 
   def deleteTopics(topics: Seq[String]) = topics.foreach(deleteTopic(_))
 
-  def existTopic(topic: String): Boolean = AdminUtils.topicExists(getZkUtils, topic)
+  def existTopic(topic: String): Boolean = zkClient.topicExists(topic)
 
-  def listTopics = getZkUtils.getAllTopics
-
-  private def getZkUtils: ZkUtils = if (brokers.isEmpty) null else brokers.head.zkUtils
+  def listTopics = zkClient.getAllTopicsInCluster
 
   private def resolvePort(port: Int) = if (port <= 0) TestUtils.getAvailablePort else port
 
