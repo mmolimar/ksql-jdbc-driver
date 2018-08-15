@@ -14,7 +14,7 @@ First of all, the KSQL lib has to be installed into your local repo.
 
 So, cloning the KSQL repo:
 
-``git clone https://github.com/confluentinc/ksql.git && cd ksql && git v4.1.0-rc3``
+``git clone https://github.com/confluentinc/ksql.git && cd ksql && git checkout v4.1.0-rc3``
 
 and installing it:
 
