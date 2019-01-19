@@ -7,6 +7,7 @@ import java.nio.channels.ServerSocketChannel
 import java.util
 import java.util.{Properties, Random, UUID}
 
+import javax.ws.rs.core.Response
 import kafka.utils.Logging
 import kafka.zk.KafkaZkClient
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
@@ -17,6 +18,8 @@ import org.apache.kafka.common.utils.Time
 
 import scala.reflect.runtime.universe._
 import scala.reflect.{ClassTag, _}
+import _root_.io.confluent.ksql.rest.client.KsqlRestClient
+import javax.ws.rs.client.Client
 
 object TestUtils extends Logging {
 
@@ -127,6 +130,17 @@ object TestUtils extends Logging {
     } catch {
       case e: Throwable => logger.warn(e.getMessage, e)
     }
+  }
+
+  class MockableKsqlRestClient(client: Client) extends KsqlRestClient("http://localhost:8080")
+
+  def mockQueryStream(mockResponse: Response): KsqlRestClient.QueryStream = {
+    classOf[KsqlRestClient.QueryStream].getDeclaredConstructors
+      .filter(_.getParameterCount == 1)
+      .map(c => {
+        c.setAccessible(true)
+        c
+      }).head.newInstance(mockResponse).asInstanceOf[KsqlRestClient.QueryStream]
   }
 
   def reflectMethods[T <: AnyRef](implementedMethods: Seq[String], implemented: Boolean,

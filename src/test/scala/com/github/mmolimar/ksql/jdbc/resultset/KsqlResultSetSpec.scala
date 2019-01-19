@@ -1,12 +1,9 @@
 package com.github.mmolimar.ksql.jdbc.resultset
 
-import java.io.InputStream
 import java.sql.{ResultSet, SQLException, SQLFeatureNotSupportedException}
-import javax.ws.rs.core.Response
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.GenericRow
-import io.confluent.ksql.rest.client.KsqlRestClient
 import io.confluent.ksql.rest.entity.StreamedRow
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
@@ -26,34 +23,30 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
 
       "throw not supported exception if not supported" in {
 
-        val resultSet = new KsqlResultSet(null)
+        val resultSet = new KsqlResultSet(mock[JdbcQueryStream], 0)
         reflectMethods[KsqlResultSet](implementedMethods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-                method()
+              method()
             }
           })
       }
 
       "work if implemented" in {
 
-        val mockResponse = mock[Response]
-        (mockResponse.getEntity _).expects.returns(mock[InputStream]).anyNumberOfTimes
-
-        val mockQueryStream = mock[MockQueryStream]
+        val mockedQueryStream = mock[JdbcQueryStream]
         inSequence {
-          (mockQueryStream.hasNext _).expects.returns(true)
+          (mockedQueryStream.hasNext _).expects.returns(true)
           val columnValues = Seq[AnyRef]("string", "bytes".getBytes, Boolean.box(true), Byte.box('0'),
             Short.box(1), Int.box(2), Long.box(3L), Float.box(4.4f), Double.box(5.5d))
-          (mockQueryStream.next _).expects.returns(new StreamedRow(new GenericRow(columnValues.asJava), null))
-          (mockQueryStream.hasNext _).expects.returns(false)
-          (mockQueryStream.close _).expects.returns()
-          (mockQueryStream.close _).expects.throws(new IllegalStateException("Cannot call close() when already closed"))
-          (mockQueryStream.hasNext _).expects.throws(new IllegalStateException("Cannot call hasNext() once closed"))
+          (mockedQueryStream.next _).expects.returns(StreamedRow.row(new GenericRow(columnValues.asJava)))
+          (mockedQueryStream.hasNext _).expects.returns(false)
+          (mockedQueryStream.close _).expects.returns()
+          (mockedQueryStream.close _).expects.throws(new IllegalStateException("Cannot call close() when already closed."))
+          (mockedQueryStream.hasNext _).expects.throws(new IllegalStateException("Cannot call hasNext() once closed."))
         }
 
-        val resultSet = new KsqlResultSet(mockQueryStream)
-
+        val resultSet = new KsqlResultSet(mockedQueryStream)
         resultSet.isLast should be(false)
         resultSet.isAfterLast should be(false)
         resultSet.isBeforeFirst should be(false)
@@ -113,9 +106,6 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         assertThrows[IllegalStateException] {
           resultSet.next
         }
-
-
-        class MockQueryStream extends KsqlRestClient.QueryStream(mockResponse)
       }
     }
   }
@@ -130,7 +120,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         reflectMethods[ResultSetNotSupported](Seq.empty, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-                method()
+              method()
             }
           })
       }

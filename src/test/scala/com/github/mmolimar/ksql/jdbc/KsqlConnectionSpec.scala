@@ -5,21 +5,21 @@ import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
-import io.confluent.ksql.rest.entity.{CommandStatus, CommandStatuses, ErrorMessage, KsqlEntityList}
+import io.confluent.ksql.rest.entity._
 import io.confluent.ksql.rest.server.computation.CommandId
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 
 class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
-  val implementedMethods = Seq("createStatement", "getTransactionIsolation",
+  val implementedMethods = Seq("createStatement", "getAutoCommit", "getTransactionIsolation",
     "setClientInfo", "isReadOnly", "isValid", "close", "getMetaData")
 
   "A KsqlConnection" when {
 
     "validating specs" should {
       val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
-      val ksqlRestClient = mock[KsqlRestClient]
+      val ksqlRestClient = mock[MockableKsqlRestClient]
       val ksqlConnection = new KsqlConnection(values, new Properties) {
         override def init: KsqlRestClient = ksqlRestClient
       }
@@ -42,7 +42,7 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         ksqlConnection.setClientInfo("", "")
         assertThrows[SQLException] {
           (ksqlRestClient.makeKsqlRequest _).expects(*)
-            .returns(RestResponse.erroneous(new ErrorMessage("", Collections.emptyList[String])))
+            .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "", Collections.emptyList[String])))
           ksqlConnection.setClientInfo("", "")
         }
 

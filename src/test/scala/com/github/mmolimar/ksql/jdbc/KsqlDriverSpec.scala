@@ -27,6 +27,9 @@ class KsqlDriverSpec extends WordSpec with Matchers {
       }
       "throw an exception when connecting to an invalid URL" in {
         assertThrows[SQLException] {
+          driver.connect("invalid", new Properties)
+        }
+        assertThrows[SQLException] {
           driver.connect("jdbc:ksql://localhost:9999999", new Properties)
         }
       }

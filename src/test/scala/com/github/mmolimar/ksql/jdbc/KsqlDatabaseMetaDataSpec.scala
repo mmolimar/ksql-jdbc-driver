@@ -3,27 +3,28 @@ package com.github.mmolimar.ksql.jdbc
 import java.io.InputStream
 import java.sql.{SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
-import javax.ws.rs.core.Response
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
-import io.confluent.ksql.rest.entity.{ErrorMessage, KsqlEntityList}
+import io.confluent.ksql.rest.entity.{KsqlEntityList, KsqlErrorMessage}
+import javax.ws.rs.core.Response
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 
 class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
-  val implementedMethods = Seq("getDriverName", "getDriverVersion", "getDriverMajorVersion", "getDriverMinorVersion",
-    "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs", "getTableTypes", "getTables",
-    "getSchemas", "getSuperTables", "getColumns")
+  val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
+    "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
+    "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
+    "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly")
 
   "A KsqlDatabaseMetaData" when {
 
     val mockResponse = mock[Response]
     (mockResponse.getEntity _).expects.returns(mock[InputStream])
 
-    val mockKsqlRestClient = mock[KsqlRestClient]
+    val mockKsqlRestClient = mock[MockableKsqlRestClient]
 
     val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
     val ksqlConnection = new KsqlConnection(values, new Properties) {
@@ -35,7 +36,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
 
       "throw not supported exception if not supported" in {
         (mockKsqlRestClient.makeQueryRequest _).expects(*)
-          .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
+          .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .anyNumberOfTimes
 
         reflectMethods[KsqlDatabaseMetaData](implementedMethods, false, metadata)
@@ -57,11 +58,11 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
           })
 
         (mockKsqlRestClient.makeQueryRequest _).expects(*)
-          .returns(RestResponse.successful[KsqlRestClient.QueryStream](new KsqlRestClient.QueryStream(mockResponse)))
+          .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .anyNumberOfTimes
 
         (mockKsqlRestClient.makeKsqlRequest _).expects(*)
-          .returns(RestResponse.erroneous(new ErrorMessage("error message", Collections.emptyList[String])))
+          .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error message", Collections.emptyList[String])))
           .once
 
         assertThrows[SQLException] {
