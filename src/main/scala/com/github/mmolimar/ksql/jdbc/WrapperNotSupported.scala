@@ -6,8 +6,8 @@ import com.github.mmolimar.ksql.jdbc.Exceptions._
 
 trait WrapperNotSupported extends Wrapper {
 
-  override def unwrap[T](iface: Class[T]): T = throw NotSupported()
+  override def unwrap[T](iface: Class[T]): T = throw NotSupported("unknown")
 
-  override def isWrapperFor(iface: Class[_]): Boolean = throw NotSupported()
+  override def isWrapperFor(iface: Class[_]): Boolean = throw NotSupported("unknown")
 
 }

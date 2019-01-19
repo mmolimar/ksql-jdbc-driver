@@ -18,7 +18,9 @@ case class InvalidProperty(name: String) extends KsqlException {
   override def message = s"Invalid property ${name}."
 }
 
-case class NotSupported(override val message: String = "Feature not supported") extends KsqlException
+case class NotSupported(feature: String) extends KsqlException {
+  override val message = s"Feature not supported: $feature."
+}
 
 case class KsqlQueryError(override val message: String = "Error executing query") extends KsqlException
 

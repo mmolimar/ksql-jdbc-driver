@@ -1,6 +1,8 @@
 package com.github.mmolimar.ksql.jdbc.resultset
 
+import java.io.Closeable
 import java.sql.ResultSet
+import java.util.Iterator
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.NotSupported
@@ -14,10 +16,23 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.{Failure, Success, Try}
 
-class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream, val timeout: Long = 0)
+private[resultset] class JdbcQueryStream(stream: KsqlRestClient.QueryStream, timeout: Long)
+  extends Closeable with Iterator[StreamedRow] {
+
+  override def close(): Unit = stream.close
+
+  override def hasNext: Boolean = stream.hasNext
+
+  override def next(): StreamedRow = stream.next
+
+}
+
+class KsqlResultSet(private[jdbc] val stream: JdbcQueryStream, val timeout: Long = 0)
   extends AbstractResultSet[StreamedRow](stream) {
 
-  private val emptyRow: StreamedRow = new StreamedRow(new GenericRow, null)
+  def this(stream: KsqlRestClient.QueryStream, timeout: Long) = this(new JdbcQueryStream(stream, timeout))
+
+  private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
 
   private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
 
@@ -58,6 +73,6 @@ class KsqlResultSet(private[jdbc] val stream: KsqlRestClient.QueryStream, val ti
     currentRow.get.getRow.getColumns.get(columnIndex - 1).asInstanceOf[T]
   }
 
-  override protected def getColumnIndex(columnLabel: String): Int = throw NotSupported()
+  override protected def getColumnIndex(columnLabel: String): Int = throw NotSupported("getting column by label")
 
 }

@@ -6,7 +6,8 @@ import java.util.Properties
 import java.util.concurrent.Executor
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import io.confluent.ksql.rest.client.KsqlRestClient
+import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
+import io.confluent.ksql.rest.entity.KsqlEntityList
 
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
@@ -41,43 +42,43 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
     }
   }
 
-  private[jdbc] def executeKsqlCommand(ksql: String) = ksqlClient.makeKsqlRequest(ksql)
+  private[jdbc] def executeKsqlCommand(ksql: String): RestResponse[KsqlEntityList] = ksqlClient.makeKsqlRequest(ksql)
 
-  override def setAutoCommit(autoCommit: Boolean): Unit = throw NotSupported()
+  override def setAutoCommit(autoCommit: Boolean): Unit = throw NotSupported("setAutoCommit")
 
-  override def setHoldability(holdability: Int): Unit = throw NotSupported()
+  override def setHoldability(holdability: Int): Unit = throw NotSupported("setHoldability")
 
-  override def clearWarnings: Unit = throw NotSupported()
+  override def clearWarnings: Unit = throw NotSupported("clearWarnings")
 
-  override def getNetworkTimeout: Int = throw NotSupported()
+  override def getNetworkTimeout: Int = throw NotSupported("getNetworkTimeout")
 
-  override def createBlob: Blob = throw NotSupported()
+  override def createBlob: Blob = throw NotSupported("createBlob")
 
-  override def createSQLXML: SQLXML = throw NotSupported()
+  override def createSQLXML: SQLXML = throw NotSupported("createSQLXML")
 
-  override def setSavepoint: Savepoint = throw NotSupported()
+  override def setSavepoint: Savepoint = throw NotSupported("setSavepoint")
 
-  override def setSavepoint(name: String): Savepoint = throw NotSupported()
+  override def setSavepoint(name: String): Savepoint = throw NotSupported("setSavepoint")
 
-  override def createNClob: NClob = throw NotSupported()
+  override def createNClob: NClob = throw NotSupported("createNClob")
 
   override def getTransactionIsolation: Int = Connection.TRANSACTION_NONE
 
-  override def getClientInfo(name: String): String = throw NotSupported()
+  override def getClientInfo(name: String): String = throw NotSupported("getClientInfo")
 
-  override def getClientInfo: Properties = throw NotSupported()
+  override def getClientInfo: Properties = throw NotSupported("getClientInfo")
 
-  override def getSchema: String = throw NotSupported()
+  override def getSchema: String = throw NotSupported("getSchema")
 
-  override def setNetworkTimeout(executor: Executor, milliseconds: Int): Unit = throw NotSupported()
+  override def setNetworkTimeout(executor: Executor, milliseconds: Int): Unit = throw NotSupported("setNetworkTimeout")
 
   override def getMetaData: DatabaseMetaData = new KsqlDatabaseMetaData(this)
 
-  override def getTypeMap: util.Map[String, Class[_]] = throw NotSupported()
+  override def getTypeMap: util.Map[String, Class[_]] = throw NotSupported("getTypeMap")
 
-  override def rollback: Unit = throw NotSupported()
+  override def rollback: Unit = throw NotSupported("rollback")
 
-  override def rollback(savepoint: Savepoint): Unit = throw NotSupported()
+  override def rollback(savepoint: Savepoint): Unit = throw NotSupported("rollback")
 
   override def createStatement: Statement = createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
 
@@ -95,9 +96,9 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
     new KsqlStatement(ksqlClient, values.timeout)
   }
 
-  override def getHoldability: Int = throw NotSupported()
+  override def getHoldability: Int = throw NotSupported("getHoldability")
 
-  override def setReadOnly(readOnly: Boolean): Unit = throw NotSupported()
+  override def setReadOnly(readOnly: Boolean): Unit = throw NotSupported("setReadOnly")
 
   override def setClientInfo(name: String, value: String): Unit = {
     val ksql = s"SET '${name.trim}'='${value.trim}';"
@@ -112,60 +113,63 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def isReadOnly: Boolean = true
 
-  override def setTypeMap(map: util.Map[String, Class[_]]): Unit = throw NotSupported()
+  override def setTypeMap(map: util.Map[String, Class[_]]): Unit = throw NotSupported("setTypeMap")
 
-  override def getCatalog: String = throw NotSupported()
+  override def getCatalog: String = throw NotSupported("getCatalog")
 
-  override def createClob: Clob = throw NotSupported()
+  override def createClob: Clob = throw NotSupported("createClob")
 
-  override def nativeSQL(sql: String): String = throw NotSupported()
+  override def nativeSQL(sql: String): String = throw NotSupported("nativeSQL")
 
-  override def setTransactionIsolation(level: Int): Unit = throw NotSupported()
+  override def setTransactionIsolation(level: Int): Unit = throw NotSupported("setTransactionIsolation")
 
-  override def prepareCall(sql: String): CallableStatement = throw NotSupported()
+  override def prepareCall(sql: String): CallableStatement = throw NotSupported("prepareCall")
 
   override def prepareCall(sql: String, resultSetType: Int,
-                           resultSetConcurrency: Int): CallableStatement = throw NotSupported()
+                           resultSetConcurrency: Int): CallableStatement = throw NotSupported("prepareCall")
 
   override def prepareCall(sql: String, resultSetType: Int, resultSetConcurrency: Int,
-                           resultSetHoldability: Int): CallableStatement = throw NotSupported()
+                           resultSetHoldability: Int): CallableStatement = throw NotSupported("prepareCall")
 
-  override def createArrayOf(typeName: String, elements: scala.Array[AnyRef]): Array = throw NotSupported()
+  override def createArrayOf(typeName: String, elements: scala.Array[AnyRef]): Array = throw NotSupported("createArrayOf")
 
-  override def setCatalog(catalog: String): Unit = throw NotSupported()
+  override def setCatalog(catalog: String): Unit = throw NotSupported("setCatalog")
 
   override def close: Unit = ksqlClient.close
 
-  override def getAutoCommit: Boolean = throw NotSupported()
+  override def getAutoCommit: Boolean = false
 
-  override def abort(executor: Executor): Unit = throw NotSupported()
+  override def abort(executor: Executor): Unit = throw NotSupported("abort")
 
   override def isValid(timeout: Int): Boolean = ksqlClient.makeStatusRequest.isSuccessful
 
-  override def prepareStatement(sql: String): PreparedStatement = throw NotSupported()
+  override def prepareStatement(sql: String): PreparedStatement = throw NotSupported("prepareStatement")
 
   override def prepareStatement(sql: String, resultSetType: Int,
-                                resultSetConcurrency: Int): PreparedStatement = throw NotSupported()
+                                resultSetConcurrency: Int): PreparedStatement = throw NotSupported("prepareStatement")
 
   override def prepareStatement(sql: String, resultSetType: Int, resultSetConcurrency: Int,
-                                resultSetHoldability: Int): PreparedStatement = throw NotSupported()
+                                resultSetHoldability: Int): PreparedStatement = throw NotSupported("prepareStatement")
 
-  override def prepareStatement(sql: String, autoGeneratedKeys: Int): PreparedStatement = throw NotSupported()
+  override def prepareStatement(sql: String, autoGeneratedKeys: Int): PreparedStatement = throw NotSupported("prepareStatement")
 
-  override def prepareStatement(sql: String, columnIndexes: scala.Array[Int]): PreparedStatement = throw NotSupported()
+  override def prepareStatement(sql: String, columnIndexes: scala.Array[Int]): PreparedStatement =
+    throw NotSupported("prepareStatement")
 
-  override def prepareStatement(sql: String, columnNames: scala.Array[String]): PreparedStatement = throw NotSupported()
+  override def prepareStatement(sql: String, columnNames: scala.Array[String]): PreparedStatement =
+    throw NotSupported("prepareStatement")
 
-  override def releaseSavepoint(savepoint: Savepoint): Unit = throw NotSupported()
+  override def releaseSavepoint(savepoint: Savepoint): Unit = throw NotSupported("releaseSavepoint")
 
-  override def isClosed: Boolean = throw NotSupported()
+  override def isClosed: Boolean = throw NotSupported("isClosed")
 
-  override def createStruct(typeName: String, attributes: scala.Array[AnyRef]): Struct = throw NotSupported()
+  override def createStruct(typeName: String, attributes: scala.Array[AnyRef]): Struct =
+    throw NotSupported("createStruct")
 
-  override def getWarnings: SQLWarning = throw NotSupported()
+  override def getWarnings: SQLWarning = throw NotSupported("getWarnings")
 
-  override def setSchema(schema: String): Unit = throw NotSupported()
+  override def setSchema(schema: String): Unit = throw NotSupported("setSchema")
 
-  override def commit: Unit = throw NotSupported()
+  override def commit: Unit = throw NotSupported("commit")
 
 }
