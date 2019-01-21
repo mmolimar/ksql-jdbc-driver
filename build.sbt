@@ -16,9 +16,10 @@ libraryDependencies += "io.confluent.ksql" % "ksql-rest-app" % "5.1.0"
 libraryDependencies += "org.apache.kafka" %% "kafka" % "2.1.0" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % "test"
+libraryDependencies += "javax.ws.rs" % "javax.ws.rs-api" % "2.1.1" artifacts (Artifact("javax.ws.rs-api", "jar", "jar"))
 
 assemblyMergeStrategy in assembly := {
-  case PathList("javax", "inject", xs @ _*) => MergeStrategy.first
+  case PathList("javax", "inject", xs@_*) => MergeStrategy.first
   case "module-info.class" => MergeStrategy.discard
   case "log4j.properties" => MergeStrategy.discard
   case x =>
