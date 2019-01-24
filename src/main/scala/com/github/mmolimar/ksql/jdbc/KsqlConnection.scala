@@ -2,8 +2,8 @@ package com.github.mmolimar.ksql.jdbc
 
 import java.sql._
 import java.util
-import java.util.Properties
 import java.util.concurrent.Executor
+import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
@@ -21,6 +21,8 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
 
   def isSecured: Boolean = config.getOrElse("secured", "false").toBoolean
 
+  def properties: Boolean = config.getOrElse("properties", "true").toBoolean
+
   def timeout: Long = config.getOrElse("timeout", "0").toLong
 
 }
@@ -30,7 +32,12 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
   private val ksqlClient = init
 
   private[jdbc] def init: KsqlRestClient = {
-    new KsqlRestClient(values.getKsqlUrl, properties.asScala.toMap[String, AnyRef].asJava)
+    val props = if (values.properties) {
+      properties.asScala.toMap[String, AnyRef].asJava
+    } else {
+      Collections.emptyMap[String, AnyRef]
+    }
+    new KsqlRestClient(values.getKsqlUrl, props)
   }
 
   private[jdbc] def validate: Unit = {
@@ -91,7 +98,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
       resultSetConcurrency != ResultSet.CONCUR_READ_ONLY ||
       resultSetHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT) {
       throw NotSupported("ResultSetType, ResultSetConcurrency and ResultSetHoldability must be" +
-        " TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, HOLD_CURSORS_OVER_COMMIT respectively ")
+        " TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, HOLD_CURSORS_OVER_COMMIT respectively.")
     }
     new KsqlStatement(ksqlClient, values.timeout)
   }

@@ -11,14 +11,14 @@ import scala.util.Try
 object KsqlDriver {
 
   val driverName = "KSQL JDBC"
-  val version = "0.1-SNAPSHOT"
+  val version = "0.3"
   val ksqlPrefix = "jdbc:ksql://"
   val majorVersion = 1
   val minorVersion = 0
   val jdbcMajorVersion = 4
   val jdbcMinorVersion = 1
 
-  private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]+)"
+  private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]{1,5})"
 
   private val ksqlPropsRegex = "(\\?([A-Za-z0-9._-]+=[A-Za-z0-9._-]+(&[A-Za-z0-9._-]+=[A-Za-z0-9._-]+)*)){0,1}"
 
