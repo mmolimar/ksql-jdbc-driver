@@ -329,7 +329,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     getSchemas
   }
 
-  override def supportsMultipleResultSets: Boolean = throw NotSupported("supportsMultipleResultSets")
+  override def supportsMultipleResultSets: Boolean = false
 
   override def ownInsertsAreVisible(`type`: Int): Boolean = throw NotSupported("ownInsertsAreVisible")
 

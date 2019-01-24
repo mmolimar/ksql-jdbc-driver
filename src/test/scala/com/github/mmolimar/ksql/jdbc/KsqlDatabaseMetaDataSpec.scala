@@ -17,7 +17,8 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
   val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
     "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
     "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
-    "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly")
+    "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly",
+    "supportsMultipleResultSets")
 
   "A KsqlDatabaseMetaData" when {
 
@@ -117,6 +118,8 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         assertThrows[SQLException] {
           metadata.getColumns("", "test", "test", "test")
         }
+
+        metadata.supportsMultipleResultSets should be(false)
 
       }
     }
