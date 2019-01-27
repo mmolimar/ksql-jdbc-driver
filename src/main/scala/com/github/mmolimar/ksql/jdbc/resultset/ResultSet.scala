@@ -8,7 +8,7 @@ import java.util
 import java.util.Calendar
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.{EmptyRow, InvalidColumn, NotSupported, WrapperNotSupported}
+import com.github.mmolimar.ksql.jdbc._
 
 
 private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNotSupported {
@@ -401,12 +401,29 @@ abstract class AbstractResultSet[T](private val iterator: Iterator[T]) extends R
 
   protected var currentRow: Option[T] = None
 
-  override def next: Boolean = iterator.hasNext match {
+  private var closed: Boolean = false
+
+  protected def nextResult: Boolean = iterator.hasNext match {
     case true =>
       currentRow = Some(iterator.next)
       true
     case false => false
   }
+
+  override final def next: Boolean = closed match {
+    case true => throw ResultSetError("Result set is already closed.")
+    case false => nextResult
+  }
+
+  override final def close: Unit = closed match {
+    case true => // do nothing
+    case false =>
+      currentRow = None
+      closeInherit
+      closed = true
+  }
+
+  protected def closeInherit: Unit = {}
 
   override def getBoolean(columnIndex: Int): Boolean = getColumn(columnIndex)
 
@@ -471,4 +488,5 @@ abstract class AbstractResultSet[T](private val iterator: Iterator[T]) extends R
   protected def getValue[T <: AnyRef](columnIndex: Int): T
 
   protected def getColumnIndex(columnLabel: String): Int
+
 }

@@ -19,11 +19,11 @@ import scala.util.{Failure, Success, Try}
 private[resultset] class JdbcQueryStream(stream: KsqlRestClient.QueryStream, timeout: Long)
   extends Closeable with Iterator[StreamedRow] {
 
-  override def close(): Unit = stream.close
+  override def close: Unit = stream.close
 
   override def hasNext: Boolean = stream.hasNext
 
-  override def next(): StreamedRow = stream.next
+  override def next: StreamedRow = stream.next
 
 }
 
@@ -36,7 +36,7 @@ class KsqlResultSet(private[jdbc] val stream: JdbcQueryStream, val timeout: Long
 
   private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
 
-  override def next: Boolean = {
+  protected override def nextResult: Boolean = {
     def hasNext = stream.hasNext match {
       case true =>
         stream.next match {
@@ -65,14 +65,12 @@ class KsqlResultSet(private[jdbc] val stream: JdbcQueryStream, val timeout: Long
 
   override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY
 
-  override def close: Unit = stream.close
-
   override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
 
   override protected def getValue[T <: AnyRef](columnIndex: Int): T = {
     currentRow.get.getRow.getColumns.get(columnIndex - 1).asInstanceOf[T]
   }
 
-  override protected def getColumnIndex(columnLabel: String): Int = throw NotSupported("getting column by label")
+  override protected def getColumnIndex(columnLabel: String): Int = throw NotSupported("getColumnIndex")
 
 }

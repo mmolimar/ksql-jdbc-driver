@@ -15,7 +15,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
 
   val implementedMethods = Seq("isLast", "isAfterLast", "isBeforeFirst", "isFirst", "next",
     "getConcurrency", "close", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
-    "getInt", "getLong", "getFloat", "getDouble")
+    "getInt", "getLong", "getFloat", "getDouble", "getResultSet", "getUpdateCount")
 
   "A KsqlResultSet" when {
 
@@ -41,9 +41,6 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
             Short.box(1), Int.box(2), Long.box(3L), Float.box(4.4f), Double.box(5.5d))
           (mockedQueryStream.next _).expects.returns(StreamedRow.row(new GenericRow(columnValues.asJava)))
           (mockedQueryStream.hasNext _).expects.returns(false)
-          (mockedQueryStream.close _).expects.returns()
-          (mockedQueryStream.close _).expects.throws(new IllegalStateException("Cannot call close() when already closed."))
-          (mockedQueryStream.hasNext _).expects.throws(new IllegalStateException("Cannot call hasNext() once closed."))
         }
 
         val resultSet = new KsqlResultSet(mockedQueryStream)
@@ -100,10 +97,8 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         resultSet.next should be(false)
         resultSet.isFirst should be(false)
         resultSet.close
-        assertThrows[IllegalStateException] {
-          resultSet.close
-        }
-        assertThrows[IllegalStateException] {
+        resultSet.close
+        assertThrows[SQLException] {
           resultSet.next
         }
       }
@@ -124,9 +119,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
             }
           })
       }
-
     }
   }
 
 }
-
