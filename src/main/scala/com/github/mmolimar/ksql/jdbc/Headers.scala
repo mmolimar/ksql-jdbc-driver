@@ -5,16 +5,41 @@ import java.sql.Types
 import scala.collection.immutable
 
 
-case class HeaderField(name: String, jdbcType: Int, length: Int, index: Int) {
-  def this(name: String, jdbcType: Int, length: Int) = this(name, jdbcType, length, -1)
-}
+case class HeaderField(name: String, jdbcType: Int, length: Int, index: Int)
 
 object HeaderField {
-  def apply(name: String, jdbcType: Int, length: Int) = new HeaderField(name, jdbcType, length, -1)
+  def apply(name: String, jdbcType: Int, length: Int): HeaderField = HeaderField(name, jdbcType, length, -1)
 }
 
-object Headers {
-  val tableTypes: Map[String, HeaderField] = Seq(new HeaderField("TABLE_TYPE", Types.VARCHAR, 0))
+private object implicits {
+
+  implicit def toMap(headers: Seq[HeaderField]): Map[String, HeaderField] = {
+    headers.zipWithIndex.map { case (header, index) => {
+      (header.name, HeaderField(header.name, header.jdbcType, header.length, index + 1))
+    }
+    }.toCaseInsensitiveMap
+  }
+
+  implicit class ToTreeMap[+A](tuples: TraversableOnce[A]) {
+
+    def toCaseInsensitiveMap[U](implicit ev: A <:< (String, U)): immutable.Map[String, U] = {
+      val b = immutable.TreeMap.newBuilder[String, U](new Ordering[String] {
+        def compare(x: String, y: String): Int = String.CASE_INSENSITIVE_ORDER.compare(x.toString, y.toString)
+      })
+      for (x <- tuples)
+        b += x
+
+      b.result()
+    }
+  }
+
+}
+
+object DatabaseMetadataHeaders {
+
+  import implicits._
+
+  val tableTypes: Map[String, HeaderField] = Seq(HeaderField("TABLE_TYPE", Types.VARCHAR, 0))
 
   val catalogs: Map[String, HeaderField] = Seq(HeaderField("TABLE_CAT", Types.VARCHAR, 0))
 
@@ -71,7 +96,7 @@ object Headers {
   )
 
   def mapDataType(dataType: String): Int = dataType match {
-    case "BOOL" | "BOOLEAN" => Types.INTEGER
+    case "BOOL" | "BOOLEAN" => Types.BOOLEAN
     case "INT" | "INTEGER" => Types.INTEGER
     case "LONG" | "BIGINT" => Types.BIGINT
     case "DOUBLE" => Types.DOUBLE
@@ -81,24 +106,110 @@ object Headers {
     case _ => Types.OTHER
   }
 
-  private implicit def toMap(headers: Seq[HeaderField]): Map[String, HeaderField] = {
-    headers.zipWithIndex.map { case (header, index) => {
-      (header.name, HeaderField(header.name, header.jdbcType, header.length, index + 1))
-    }
-    }.toCaseInsensitiveMap
-  }
+}
 
-  private implicit class ToTreeMap[+A](tuples: TraversableOnce[A]) {
+object KsqlEntityHeaders {
 
-    def toCaseInsensitiveMap[U](implicit ev: A <:< (String, U)): immutable.Map[String, U] = {
-      val b = immutable.TreeMap.newBuilder[String, U](new Ordering[String] {
-        def compare(x: String, y: String): Int = String.CASE_INSENSITIVE_ORDER.compare(x.toString, y.toString)
-      })
-      for (x <- tuples)
-        b += x
+  import implicits._
 
-      b.result()
-    }
-  }
+  val commandStatusEntity: Map[String, HeaderField] = Seq(
+    HeaderField("COMMAND_STATUS_ID_TYPE", Types.VARCHAR, 16),
+    HeaderField("COMMAND_STATUS_ID_ENTITY", Types.VARCHAR, 32),
+    HeaderField("COMMAND_STATUS_ID_ACTION", Types.VARCHAR, 16),
+    HeaderField("COMMAND_STATUS_STATUS", Types.VARCHAR, 16),
+    HeaderField("COMMAND_STATUS_MESSAGE", Types.VARCHAR, 128)
+  )
+
+  val executionPlanEntity: Map[String, HeaderField] = Seq(
+    HeaderField("EXECUTION_PLAN", Types.VARCHAR, 256)
+  )
+
+  val functionDescriptionListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("FUNCTION_DESCRIPTION_AUTHOR", Types.VARCHAR, 32),
+    HeaderField("FUNCTION_DESCRIPTION_DESCRIPTION", Types.VARCHAR, 64),
+    HeaderField("FUNCTION_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_PATH", Types.VARCHAR, 64),
+    HeaderField("FUNCTION_DESCRIPTION_VERSION", Types.VARCHAR, 8),
+    HeaderField("FUNCTION_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_FN_DESC", Types.VARCHAR, 128),
+    HeaderField("FUNCTION_DESCRIPTION_FN_RETURN_TYPE", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_FN_ARGS", Types.VARCHAR, 128)
+  )
+
+  val functionNameListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("FUNCTION_NAME_FN_NAME", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_NAME_FN_TYPE", Types.VARCHAR, 16)
+  )
+
+  val kafkaTopicsListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("KAFKA_TOPIC_NAME", Types.VARCHAR, 16),
+    HeaderField("KAFKA_TOPIC_CONSUMER_COUNT", Types.INTEGER, 16),
+    HeaderField("KAFKA_TOPIC_CONSUMER_GROUP_COUNT", Types.INTEGER, 16),
+    HeaderField("KAFKA_TOPIC_REGISTERED", Types.BOOLEAN, 5),
+    HeaderField("KAFKA_TOPIC_REPLICA_INFO", Types.VARCHAR, 32)
+  )
+
+  val ksqlTopicsListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("KSQL_TOPIC_NAME", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_KAFKA_TOPIC", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_FORMAT", Types.VARCHAR, 16)
+  )
+
+  val propertiesListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("PROPERTY_NAME", Types.VARCHAR, 16),
+    HeaderField("PROPERTY_VALUE", Types.VARCHAR, 32)
+  )
+
+  val queriesEntity: Map[String, HeaderField] = Seq(
+    HeaderField("QUERY_ID", Types.VARCHAR, 16),
+    HeaderField("QUERY_STRING", Types.VARCHAR, 64),
+    HeaderField("QUERY_SINKS", Types.VARCHAR, 32)
+  )
+
+  val queryDescriptionEntity: Map[String, HeaderField] = Seq(
+    HeaderField("QUERY_DESCRIPTION_ID", Types.VARCHAR, 16),
+    HeaderField("QUERY_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
+    HeaderField("QUERY_DESCRIPTION_SOURCES", Types.VARCHAR, 32),
+    HeaderField("QUERY_DESCRIPTION_SINKS", Types.VARCHAR, 32),
+    HeaderField("QUERY_DESCRIPTION_TOPOLOGY", Types.VARCHAR, 256),
+    HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 256)
+  )
+
+  val queryDescriptionEntityList: Map[String, HeaderField] = queryDescriptionEntity
+
+  val sourceDescriptionEntity: Map[String, HeaderField] = Seq(
+    HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TOPIC", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_PARTITIONS", Types.INTEGER, 16),
+    HeaderField("SOURCE_DESCRIPTION_STATISTICS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_ERROR_STATS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
+  )
+
+  val sourceDescriptionEntityList: Map[String, HeaderField] = sourceDescriptionEntity
+
+  val streamsListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("STREAM_NAME", Types.VARCHAR, 16),
+    HeaderField("STREAM_TOPIC", Types.VARCHAR, 16),
+    HeaderField("STREAM_FORMAT", Types.VARCHAR, 16)
+  )
+
+  val tablesListEntity: Map[String, HeaderField] = Seq(
+    HeaderField("TABLE_NAME", Types.VARCHAR, 16),
+    HeaderField("TABLE_TOPIC", Types.VARCHAR, 16),
+    HeaderField("TABLE_FORMAT", Types.VARCHAR, 16),
+    HeaderField("TABLE_WINDOWS", Types.BOOLEAN, 5)
+  )
+
+  val topicDescriptionEntity: Map[String, HeaderField] = Seq(
+    HeaderField("TOPIC_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("TOPIC_DESCRIPTION_KAFKA_TOPIC", Types.VARCHAR, 16),
+    HeaderField("TOPIC_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
+    HeaderField("TOPIC_DESCRIPTION_SCHEMA_STRING", Types.BOOLEAN, 64)
+  )
 
 }
