@@ -16,7 +16,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.{Failure, Success, Try}
 
-private[resultset] class KsqlQueryStream(stream: KsqlRestClient.QueryStream)
+private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream)
   extends Closeable with Iterator[StreamedRow] {
 
   override def close: Unit = stream.close
@@ -30,9 +30,6 @@ private[resultset] class KsqlQueryStream(stream: KsqlRestClient.QueryStream)
 class KsqlResultSet(private val metadata: ResultSetMetaData,
                     private val stream: KsqlQueryStream, val timeout: Long = 0)
   extends AbstractResultSet[StreamedRow](metadata, stream) {
-
-  def this(metadata: ResultSetMetaData, stream: KsqlRestClient.QueryStream, timeout: Long) =
-    this(metadata, new KsqlQueryStream(stream), timeout)
 
   private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
 
@@ -66,8 +63,6 @@ class KsqlResultSet(private val metadata: ResultSetMetaData,
   }
 
   override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY
-
-  override def getMetaData: ResultSetMetaData = metadata
 
   override def isAfterLast: Boolean = false
 
