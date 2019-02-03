@@ -322,7 +322,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def findColumn(columnLabel: String): Int = throw NotSupported("findColumn")
 
-  override def getWarnings: SQLWarning = None.orNull
+  override def getWarnings: SQLWarning = throw NotSupported("getWarnings")
 
   override def getDate(columnIndex: Int): Date = throw NotSupported("getDate")
 
@@ -470,7 +470,7 @@ abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData, pri
 
   override def getMetaData: ResultSetMetaData = metadata
 
-  override def wasNull: Boolean = false
+  override def getWarnings: SQLWarning = None.orNull
 
   private def getColumn[T <: AnyRef](columnLabel: String)(implicit ev: ClassTag[T]): T = {
     getColumn[T](getColumnIndex(columnLabel))
@@ -501,12 +501,30 @@ abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData, pri
     ev.runtimeClass match {
       case Any_ if ev.runtimeClass == value.getClass => value
       case String_ => value.toString
+      case JBoolean_ if value.isInstanceOf[String] => JBoolean.parseBoolean(value.asInstanceOf[String])
+      case JBoolean_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].intValue != 0
+      case JShort_ if value.isInstanceOf[String] => JShort.parseShort(value.asInstanceOf[String])
       case JShort_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].shortValue
+      case JShort_ if value.isInstanceOf[JBoolean] => value.asInstanceOf[JBoolean].compareTo(false).shortValue
+      case JInt_ if value.isInstanceOf[String] => JInt.parseInt(value.asInstanceOf[String])
       case JInt_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].intValue
+      case JInt_ if value.isInstanceOf[JBoolean] => value.asInstanceOf[JBoolean].compareTo(false).intValue
+      case JLong_ if value.isInstanceOf[String] => JLong.parseLong(value.asInstanceOf[String])
       case JLong_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].longValue
+      case JLong_ if value.isInstanceOf[JBoolean] => value.asInstanceOf[JBoolean].compareTo(false).longValue
+      case JDouble_ if value.isInstanceOf[String] => JDouble.parseDouble(value.asInstanceOf[String])
       case JDouble_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].doubleValue
+      case JDouble_ if value.isInstanceOf[JBoolean] => value.asInstanceOf[JBoolean].compareTo(false).doubleValue
+      case JFloat_ if value.isInstanceOf[String] => JFloat.parseFloat(value.asInstanceOf[String])
       case JFloat_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].floatValue
+      case JFloat_ if value.isInstanceOf[JBoolean] => value.asInstanceOf[JBoolean].compareTo(false).floatValue
+      case JByte_ if value.isInstanceOf[String] => value.asInstanceOf[String].toByte
       case JByte_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].byteValue
+      case JByte_ if value.isInstanceOf[JBoolean] => value.asInstanceOf[JBoolean].compareTo(false).byteValue
+      case JByteArray_ if value.isInstanceOf[String] => value.asInstanceOf[String].getBytes
+      case JByteArray_ if value.isInstanceOf[Number] => scala.Array[Byte](value.asInstanceOf[Number].byteValue)
+      case JByteArray_ if value.isInstanceOf[JBoolean] =>
+        scala.Array[Byte](value.asInstanceOf[JBoolean].compareTo(false).byteValue)
       case _ => value
     }
   }.asInstanceOf[T]
@@ -514,12 +532,14 @@ abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData, pri
   private object ImplicitClasses {
     val Any_ = classOf[Any]
     val String_ = classOf[String]
+    val JBoolean_ = classOf[JBoolean]
     val JShort_ = classOf[JShort]
     val JInt_ = classOf[JInt]
     val JLong_ = classOf[JLong]
     val JDouble_ = classOf[JDouble]
     val JFloat_ = classOf[JFloat]
     val JByte_ = classOf[JByte]
+    val JByteArray_ = classOf[scala.Array[Byte]]
   }
 
   protected def isEmpty: Boolean = currentRow.isEmpty
