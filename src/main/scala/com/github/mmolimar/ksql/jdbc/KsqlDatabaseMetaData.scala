@@ -63,7 +63,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def storesUpperCaseQuotedIdentifiers: Boolean = throw NotSupported("storesUpperCaseQuotedIdentifiers")
 
   override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String,
-                       types: Array[Int]): ResultSet = new StaticResultSet[String](Map.empty, Iterator.empty)
+                       types: Array[Int]): ResultSet = new StaticResultSet[String](List.empty[HeaderField], Iterator.empty)
 
   override def getAttributes(catalog: String, schemaPattern: String, typeNamePattern: String,
                              attributeNamePattern: String): ResultSet = throw NotSupported("getAttributes")
