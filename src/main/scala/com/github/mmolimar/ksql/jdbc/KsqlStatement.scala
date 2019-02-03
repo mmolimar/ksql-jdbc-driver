@@ -88,7 +88,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
             import scala.collection.JavaConverters._
             throw KsqlQueryError(s"Error getting metadata for query: '$fixedSql'. " +
               s"Error: ${response.getErrorMessage.getStackTrace.asScala.mkString("\n")}.")
-          } else if (response.getResponse.size > 1) {
+          } else if (response.getResponse.size != 1) {
             throw KsqlEntityListError("Invalid metadata for result set.")
           }
           response.getResponse.get(0).asInstanceOf[QueryDescriptionEntity]
@@ -166,7 +166,9 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
 
   override def isCloseOnCompletion: Boolean = throw NotSupported("isCloseOnCompletion")
 
-  private def fixSql(sql: String): String = Option(sql).map(s => if (s.trim.last == ';') s else s + ";").getOrElse("")
+  private def fixSql(sql: String): String = {
+    Option(sql).filter(_.trim.nonEmpty).map(s => if (s.trim.last == ';') s else s + ";").getOrElse("")
+  }
 
   private implicit def toResultSet(stream: KsqlRestClient.QueryStream)
                                   (implicit queryDesc: QueryDescription): ResultSet = {
@@ -188,7 +190,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
   private implicit def toResultSet(list: KsqlEntityList): ResultSet = {
     import KsqlEntityHeaders._
 
-    if (list.size > 1) throw KsqlEntityListError("KSQL entity list with more than one record.")
+    if (list.size != 1) throw KsqlEntityListError(s"KSQL entity list with an invalid number of entities: '${list.size}'.")
     list.asScala.headOption.map(_ match {
       case e: CommandStatusEntity => {
         val rows = Iterator(Seq(
