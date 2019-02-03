@@ -3,9 +3,15 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql.{SQLException, SQLFeatureNotSupportedException}
 import java.util.Properties
 
+import com.github.mmolimar.ksql.jdbc.utils.TestUtils.MockableKsqlRestClient
+import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
+import io.confluent.ksql.rest.entity.{KsqlErrorMessage, ServerInfo}
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, WordSpec}
 
-class KsqlDriverSpec extends WordSpec with Matchers {
+import scala.collection.JavaConverters._
+
+class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
 
   "A KsqlDriver" when {
     val driver = new KsqlDriver
@@ -33,6 +39,39 @@ class KsqlDriverSpec extends WordSpec with Matchers {
         assertThrows[SQLException] {
           driver.connect("jdbc:ksql://localhost:9999999", new Properties)
         }
+      }
+    }
+
+    "connecting to an URL" should {
+      val mockKsqlRestClient = mock[MockableKsqlRestClient]
+      val driver = new KsqlDriver {
+        override private[jdbc] def buildConnection(values: KsqlConnectionValues, properties: Properties) = {
+          new KsqlConnection(values, new Properties) {
+            override def init: KsqlRestClient = mockKsqlRestClient
+          }
+        }
+      }
+      "throw an exception if cannot connect to the URL" in {
+        assertThrows[SQLException] {
+          (mockKsqlRestClient.makeRootRequest _).expects()
+            .throws(new Exception("error"))
+            .once
+          driver.connect("jdbc:ksql://localhost:9999", new Properties)
+        }
+      }
+      "throw an exception if there is an error in the response" in {
+        assertThrows[SQLException] {
+          (mockKsqlRestClient.makeRootRequest _).expects()
+            .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error message", List.empty.asJava)))
+            .once
+          driver.connect("jdbc:ksql://localhost:9999", new Properties)
+        }
+      }
+      "connect properly if the response is successful" in {
+        (mockKsqlRestClient.makeRootRequest _).expects()
+          .returns(RestResponse.successful[ServerInfo](new ServerInfo("v1", "id1", "svc1")))
+          .once
+        driver.connect("jdbc:ksql://localhost:9999", new Properties)
       }
     }
 

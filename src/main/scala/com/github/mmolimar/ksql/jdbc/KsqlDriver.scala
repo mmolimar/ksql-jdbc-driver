@@ -52,8 +52,12 @@ class KsqlDriver extends Driver {
   override def connect(url: String, properties: Properties): Connection = {
     if (!acceptsURL(url)) throw InvalidUrl(url)
 
-    val connection = new KsqlConnection(KsqlDriver.parseUrl(url), properties)
+    val connection = buildConnection(KsqlDriver.parseUrl(url), properties)
     connection.validate
     connection
+  }
+
+  private[jdbc] def buildConnection(values: KsqlConnectionValues, properties: Properties): KsqlConnection = {
+    new KsqlConnection(values, properties)
   }
 }
