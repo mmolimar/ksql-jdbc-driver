@@ -21,7 +21,7 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
 
   def isSecured: Boolean = config.getOrElse("secured", "false").toBoolean
 
-  def properties: Boolean = config.getOrElse("properties", "true").toBoolean
+  def properties: Boolean = config.getOrElse("properties", "false").toBoolean
 
   def timeout: Long = config.getOrElse("timeout", "0").toLong
 
@@ -51,7 +51,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   private[jdbc] def executeKsqlCommand(ksql: String): RestResponse[KsqlEntityList] = ksqlClient.makeKsqlRequest(ksql)
 
-  override def setAutoCommit(autoCommit: Boolean): Unit = throw NotSupported("setAutoCommit")
+  override def setAutoCommit(autoCommit: Boolean): Unit = {}
 
   override def setHoldability(holdability: Int): Unit = throw NotSupported("setHoldability")
 
@@ -173,7 +173,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
   override def createStruct(typeName: String, attributes: scala.Array[AnyRef]): Struct =
     throw NotSupported("createStruct")
 
-  override def getWarnings: SQLWarning = throw NotSupported("getWarnings")
+  override def getWarnings: SQLWarning = None.orNull
 
   override def setSchema(schema: String): Unit = throw NotSupported("setSchema")
 

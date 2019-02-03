@@ -13,7 +13,7 @@ import org.scalatest.{Matchers, WordSpec}
 class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
   val implementedMethods = Seq("createStatement", "getAutoCommit", "getTransactionIsolation",
-    "setClientInfo", "isReadOnly", "isValid", "close", "getMetaData")
+    "setClientInfo", "isReadOnly", "isValid", "close", "getMetaData", "getWarnings", "setAutoCommit")
 
   "A KsqlConnection" when {
 
@@ -28,7 +28,7 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         reflectMethods[KsqlConnection](implementedMethods, false, ksqlConnection)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
-                method()
+              method()
             }
           })
       }
@@ -59,6 +59,10 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         assertThrows[SQLFeatureNotSupportedException] {
           ksqlConnection.createStatement(-1, -1)
         }
+        ksqlConnection.setAutoCommit(true)
+        ksqlConnection.setAutoCommit(false)
+        ksqlConnection.getAutoCommit should be(false)
+        ksqlConnection.getWarnings should be(None.orNull)
 
         (ksqlRestClient.close _).expects
         ksqlConnection.close
