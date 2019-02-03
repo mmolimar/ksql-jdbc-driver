@@ -1,11 +1,11 @@
 package com.github.mmolimar.ksql.jdbc.resultset
 
 import java.io.Closeable
-import java.sql.ResultSet
+import java.sql.{ResultSet, ResultSetMetaData}
 import java.util.Iterator
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.NotSupported
+import com.github.mmolimar.ksql.jdbc.InvalidColumn
 import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.client.KsqlRestClient
 import io.confluent.ksql.rest.entity.StreamedRow
@@ -16,7 +16,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.{Failure, Success, Try}
 
-private[resultset] class JdbcQueryStream(stream: KsqlRestClient.QueryStream, timeout: Long)
+private[resultset] class KsqlQueryStream(stream: KsqlRestClient.QueryStream)
   extends Closeable with Iterator[StreamedRow] {
 
   override def close: Unit = stream.close
@@ -27,10 +27,12 @@ private[resultset] class JdbcQueryStream(stream: KsqlRestClient.QueryStream, tim
 
 }
 
-class KsqlResultSet(private[jdbc] val stream: JdbcQueryStream, val timeout: Long = 0)
-  extends AbstractResultSet[StreamedRow](stream) {
+class KsqlResultSet(private val metadata: ResultSetMetaData,
+                    private val stream: KsqlQueryStream, val timeout: Long = 0)
+  extends AbstractResultSet[StreamedRow](metadata, stream) {
 
-  def this(stream: KsqlRestClient.QueryStream, timeout: Long) = this(new JdbcQueryStream(stream, timeout))
+  def this(metadata: ResultSetMetaData, stream: KsqlRestClient.QueryStream, timeout: Long) =
+    this(metadata, new KsqlQueryStream(stream), timeout)
 
   private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
 
@@ -55,22 +57,24 @@ class KsqlResultSet(private[jdbc] val stream: JdbcQueryStream, val timeout: Long
     }
   }
 
-  override def isBeforeFirst: Boolean = false
-
-  override def isAfterLast: Boolean = false
-
-  override def isLast: Boolean = false
-
-  override def isFirst: Boolean = currentRow.isEmpty
-
-  override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY
+  override protected def closeInherit: Unit = stream.close
 
   override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
 
-  override protected def getValue[T <: AnyRef](columnIndex: Int): T = {
-    currentRow.get.getRow.getColumns.get(columnIndex - 1).asInstanceOf[T]
+  override protected def getValue[T](columnIndex: Int): T = {
+    currentRow.map(_.getRow.getColumns.get(columnIndex - 1)).getOrElse(throw InvalidColumn()).asInstanceOf[T]
   }
 
-  override protected def getColumnIndex(columnLabel: String): Int = throw NotSupported("getColumnIndex")
+  override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY
+
+  override def getMetaData: ResultSetMetaData = metadata
+
+  override def isAfterLast: Boolean = false
+
+  override def isBeforeFirst: Boolean = false
+
+  override def isFirst: Boolean = currentRow.isEmpty
+
+  override def isLast: Boolean = !stream.hasNext
 
 }

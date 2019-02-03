@@ -1,6 +1,7 @@
 package com.github.mmolimar.ksql.jdbc.resultset
 
 import java.io.{InputStream, Reader}
+import java.lang.{Boolean => JBoolean, Byte => JByte, Double => JDouble, Float => JFloat, Integer => JInt, Long => JLong, Short => JShort}
 import java.math.BigDecimal
 import java.net.URL
 import java.sql.{Array, Blob, Clob, Date, NClob, Ref, ResultSet, ResultSetMetaData, RowId, SQLWarning, SQLXML, Statement, Time, Timestamp}
@@ -9,6 +10,8 @@ import java.util.Calendar
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc._
+
+import scala.reflect.ClassTag
 
 
 private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNotSupported {
@@ -319,7 +322,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def findColumn(columnLabel: String): Int = throw NotSupported("findColumn")
 
-  override def getWarnings: SQLWarning = throw NotSupported("getWarnings")
+  override def getWarnings: SQLWarning = None.orNull
 
   override def getDate(columnIndex: Int): Date = throw NotSupported("getDate")
 
@@ -397,15 +400,19 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
 }
 
-abstract class AbstractResultSet[T](private val iterator: Iterator[T]) extends ResultSetNotSupported {
+abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData, private val records: Iterator[T])
+  extends ResultSetNotSupported {
+
+  private val indexByLabel: Map[String, Int] = (1 to metadata.getColumnCount)
+    .map(index => (metadata.getColumnLabel(index).toUpperCase -> index)).toMap
 
   protected var currentRow: Option[T] = None
 
   private var closed: Boolean = false
 
-  protected def nextResult: Boolean = iterator.hasNext match {
+  protected def nextResult: Boolean = records.hasNext match {
     case true =>
-      currentRow = Some(iterator.next)
+      currentRow = Some(records.next)
       true
     case false => false
   }
@@ -423,70 +430,106 @@ abstract class AbstractResultSet[T](private val iterator: Iterator[T]) extends R
       closed = true
   }
 
-  protected def closeInherit: Unit = {}
+  protected def closeInherit: Unit
 
-  override def getBoolean(columnIndex: Int): Boolean = getColumn(columnIndex)
+  override def getBoolean(columnIndex: Int): Boolean = getColumn[JBoolean](columnIndex)
 
-  override def getBoolean(columnLabel: String): Boolean = getColumn(columnLabel)
+  override def getBoolean(columnLabel: String): Boolean = getColumn[JBoolean](columnLabel)
 
-  override def getByte(columnIndex: Int): Byte = getColumn(columnIndex)
+  override def getByte(columnIndex: Int): Byte = getColumn[JByte](columnIndex)
 
-  override def getByte(columnLabel: String): Byte = getColumn(columnLabel)
+  override def getByte(columnLabel: String): Byte = getColumn[JByte](columnLabel)
 
-  override def getShort(columnIndex: Int): Short = getColumn(columnIndex)
+  override def getShort(columnIndex: Int): Short = getColumn[JShort](columnIndex)
 
-  override def getShort(columnLabel: String): Short = getColumn(columnLabel)
+  override def getShort(columnLabel: String): Short = getColumn[JShort](columnLabel)
 
-  override def getInt(columnIndex: Int): Int = getColumn(columnIndex)
+  override def getInt(columnIndex: Int): Int = getColumn[JInt](columnIndex)
 
-  override def getInt(columnLabel: String): Int = getColumn(columnLabel)
+  override def getInt(columnLabel: String): Int = getColumn[JInt](columnLabel)
 
-  override def getLong(columnIndex: Int): Long = getColumn(columnIndex)
+  override def getLong(columnIndex: Int): Long = getColumn[JLong](columnIndex)
 
-  override def getLong(columnLabel: String): Long = getColumn(columnLabel)
+  override def getLong(columnLabel: String): Long = getColumn[JLong](columnLabel)
 
-  override def getFloat(columnIndex: Int): Float = getColumn(columnIndex)
+  override def getFloat(columnIndex: Int): Float = getColumn[JFloat](columnIndex)
 
-  override def getFloat(columnLabel: String): Float = getColumn(columnLabel)
+  override def getFloat(columnLabel: String): Float = getColumn[JFloat](columnLabel)
 
-  override def getDouble(columnIndex: Int): Double = getColumn(columnIndex)
+  override def getDouble(columnIndex: Int): Double = getColumn[JDouble](columnIndex)
 
-  override def getDouble(columnLabel: String): Double = getColumn(columnLabel)
+  override def getDouble(columnLabel: String): Double = getColumn[JDouble](columnLabel)
 
-  override def getBytes(columnIndex: Int): scala.Array[Byte] = getColumn(columnIndex)
+  override def getBytes(columnIndex: Int): scala.Array[Byte] = getColumn[scala.Array[Byte]](columnIndex)
 
-  override def getBytes(columnLabel: String): scala.Array[Byte] = getColumn(columnLabel)
+  override def getBytes(columnLabel: String): scala.Array[Byte] = getColumn[scala.Array[Byte]](columnLabel)
 
-  override def getString(columnIndex: Int): String = getColumn(columnIndex)
+  override def getString(columnIndex: Int): String = getColumn[String](columnIndex)
 
-  override def getString(columnLabel: String): String = getColumn(columnLabel)
+  override def getString(columnLabel: String): String = getColumn[String](columnLabel)
 
-  private def getColumn[T <: AnyRef](columnLabel: String): T = getColumn(getColumnIndex(columnLabel))
+  override def getMetaData: ResultSetMetaData = metadata
 
-  private def getColumn[T <: AnyRef](columnIndex: Int): T = {
+  override def wasNull: Boolean = false
+
+  private def getColumn[T <: AnyRef](columnLabel: String)(implicit ev: ClassTag[T]): T = {
+    getColumn[T](getColumnIndex(columnLabel))
+  }
+
+  private def getColumn[T <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[T]): T = {
     checkRow(columnIndex)
-    getValue(columnIndex)
+    inferValue[T](columnIndex)
   }
 
   private def checkRow(columnIndex: Int) = {
     def checkIfEmpty = if (isEmpty) throw EmptyRow()
 
-    def checkColumnBounds(columnIndex: Int) = {
+    def checkColumnBounds(index: Int) = {
       val (min, max) = getColumnBounds
-      if (columnIndex < min || columnIndex > max)
-        throw InvalidColumn(s"Column with index ${columnIndex} does not exist")
+      if (index < min || index > max)
+        throw InvalidColumn(s"Column with index $index does not exist")
     }
 
     checkIfEmpty
     checkColumnBounds(columnIndex)
   }
 
+  private def inferValue[T <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[T]): T = {
+    val value = getValue[T](columnIndex)
+
+    import ImplicitClasses._
+    ev.runtimeClass match {
+      case Any_ if ev.runtimeClass == value.getClass => value
+      case String_ => value.toString
+      case JShort_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].shortValue
+      case JInt_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].intValue
+      case JLong_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].longValue
+      case JDouble_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].doubleValue
+      case JFloat_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].floatValue
+      case JByte_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].byteValue
+      case _ => value
+    }
+  }.asInstanceOf[T]
+
+  private object ImplicitClasses {
+    val Any_ = classOf[Any]
+    val String_ = classOf[String]
+    val JShort_ = classOf[JShort]
+    val JInt_ = classOf[JInt]
+    val JLong_ = classOf[JLong]
+    val JDouble_ = classOf[JDouble]
+    val JFloat_ = classOf[JFloat]
+    val JByte_ = classOf[JByte]
+  }
+
   protected def isEmpty: Boolean = currentRow.isEmpty
+
+  protected def getColumnIndex(columnLabel: String): Int = {
+    indexByLabel.get(columnLabel.toUpperCase).getOrElse(throw InvalidColumn())
+  }
 
   protected def getColumnBounds: (Int, Int)
 
   protected def getValue[T <: AnyRef](columnIndex: Int): T
-
-  protected def getColumnIndex(columnLabel: String): Int
 
 }
