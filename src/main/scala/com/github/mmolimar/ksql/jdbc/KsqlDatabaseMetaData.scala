@@ -3,7 +3,7 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql.{Connection, DatabaseMetaData, ResultSet, RowIdLifetime, Types}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.resultset.StaticResultSet
+import com.github.mmolimar.ksql.jdbc.resultset.IteratorResultSet
 import io.confluent.ksql.rest.entity.{SourceDescriptionEntity, StreamsList, TablesList}
 
 import scala.collection.JavaConverters._
@@ -62,8 +62,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def storesUpperCaseQuotedIdentifiers: Boolean = throw NotSupported("storesUpperCaseQuotedIdentifiers")
 
-  override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String,
-                       types: Array[Int]): ResultSet = new StaticResultSet[String](List.empty[HeaderField], Iterator.empty)
+  override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet =
+    new IteratorResultSet(List.empty[HeaderField], Iterator.empty)
 
   override def getAttributes(catalog: String, schemaPattern: String, typeNamePattern: String,
                              attributeNamePattern: String): ResultSet = throw NotSupported("getAttributes")
@@ -234,13 +234,13 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
                                 tableNamePattern: String, columnNamePattern: String): ResultSet =
     throw NotSupported("getPseudoColumns")
 
-  override def getCatalogs: ResultSet = new StaticResultSet[String](DatabaseMetadataHeaders.catalogs, Iterator.empty)
+  override def getCatalogs: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.catalogs, Iterator.empty)
 
   override def getSuperTables(catalog: String, schemaPattern: String,
                               tableNamePattern: String): ResultSet = {
     validateCatalogAndSchema(catalog, schemaPattern)
 
-    new StaticResultSet[String](DatabaseMetadataHeaders.superTables, Iterator.empty)
+    new IteratorResultSet(DatabaseMetadataHeaders.superTables, Iterator.empty)
   }
 
   override def getMaxColumnsInOrderBy: Int = throw NotSupported("getMaxColumnsInOrderBy")
@@ -299,7 +299,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
         }).toIterator
     } else Iterator.empty
 
-    new StaticResultSet[String](DatabaseMetadataHeaders.tables, itTables ++ itStreams)
+    new IteratorResultSet(DatabaseMetadataHeaders.tables, itTables ++ itStreams)
   }
 
   override def supportsMultipleTransactions: Boolean = throw NotSupported("supportsMultipleTransactions")
@@ -322,7 +322,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getExtraNameCharacters: String = throw NotSupported("getExtraNameCharacters")
 
-  override def getSchemas: ResultSet = new StaticResultSet[String](DatabaseMetadataHeaders.schemas, Iterator.empty)
+  override def getSchemas: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.schemas, Iterator.empty)
 
   override def getSchemas(catalog: String, schemaPattern: String): ResultSet = {
     validateCatalogAndSchema(catalog, schemaPattern)
@@ -392,7 +392,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsTransactionIsolationLevel(level: Int): Boolean = throw NotSupported("supportsTransactionIsolationLevel")
 
-  override def getTableTypes: ResultSet = new StaticResultSet[String](DatabaseMetadataHeaders.tableTypes,
+  override def getTableTypes: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes,
     Iterator(Seq(TableTypes.TABLE.name), Seq(TableTypes.STREAM.name)))
 
   override def getMaxColumnsInTable: Int = throw NotSupported("getMaxColumnsInTable")
@@ -446,7 +446,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
         }).toIterator
     }
-    new StaticResultSet[AnyRef](DatabaseMetadataHeaders.columns, tableSchemas)
+    new IteratorResultSet(DatabaseMetadataHeaders.columns, tableSchemas)
   }
 
   override def supportsResultSetType(`type`: Int): Boolean = throw NotSupported("supportsResultSetType")

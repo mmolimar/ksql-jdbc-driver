@@ -400,8 +400,8 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
 }
 
-abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData, private val records: Iterator[T])
-  extends ResultSetNotSupported {
+private[resultset] abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData,
+                                                       private val records: Iterator[T]) extends ResultSetNotSupported {
 
   private val indexByLabel: Map[String, Int] = (1 to metadata.getColumnCount)
     .map(index => (metadata.getColumnLabel(index).toUpperCase -> index)).toMap

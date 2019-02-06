@@ -8,17 +8,17 @@ import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
-class KsqlResultSetMetadataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
+class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   val implementedMethods = Seq("getColumnLabel", "getColumnName",
     "getColumnTypeName", "getColumnClassName", "isCaseSensitive", "getColumnType",
     "getColumnCount", "getPrecision", "getScale", "getColumnDisplaySize", "isNullable")
 
-  "A KsqlResultSetMetadata" when {
+  "A KsqlResultSetMetaData" when {
 
     "validating specs" should {
 
-      val resultSet = new KsqlResultSetMetadata(
+      val resultSet = new KsqlResultSetMetaData(
         List(
           HeaderField("field1", Types.INTEGER, 16),
           HeaderField("field2", Types.BIGINT, 16),
@@ -33,7 +33,7 @@ class KsqlResultSetMetadataSpec extends WordSpec with Matchers with MockFactory 
 
       "throw not supported exception if not supported" in {
 
-        reflectMethods[KsqlResultSetMetadata](implementedMethods, false, resultSet)
+        reflectMethods[KsqlResultSetMetaData](implementedMethods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -105,14 +105,14 @@ class KsqlResultSetMetadataSpec extends WordSpec with Matchers with MockFactory 
     }
   }
 
-  "A ResultSetMetadataNotSupported" when {
+  "A ResultSetMetaDataNotSupported" when {
 
     "validating specs" should {
 
       "throw not supported exception if not supported" in {
 
-        val resultSet = new ResultSetMetadataNotSupported
-        reflectMethods[ResultSetMetadataNotSupported](Seq.empty, false, resultSet)
+        val resultSet = new ResultSetMetaDataNotSupported
+        reflectMethods[ResultSetMetaDataNotSupported](Seq.empty, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()

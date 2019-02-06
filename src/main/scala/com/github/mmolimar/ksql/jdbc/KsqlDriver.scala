@@ -47,7 +47,7 @@ class KsqlDriver extends Driver {
 
   override def getMajorVersion: Int = KsqlDriver.majorVersion
 
-  override def getParentLogger: Logger = throw NotSupported("getParentLogger method not supported")
+  override def getParentLogger: Logger = throw NotSupported("getParentLogger")
 
   override def connect(url: String, properties: Properties): Connection = {
     if (!acceptsURL(url)) throw InvalidUrl(url)

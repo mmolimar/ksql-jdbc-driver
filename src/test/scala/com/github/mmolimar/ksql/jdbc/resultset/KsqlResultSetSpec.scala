@@ -2,8 +2,8 @@ package com.github.mmolimar.ksql.jdbc.resultset
 
 import java.sql._
 
-import com.github.mmolimar.ksql.jdbc.HeaderField
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
+import com.github.mmolimar.ksql.jdbc.{DatabaseMetadataHeaders, HeaderField, TableTypes}
 import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.entity.StreamedRow
 import org.scalamock.scalatest.MockFactory
@@ -12,17 +12,55 @@ import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 import scala.collection.JavaConverters._
 
 
-class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
+class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
-  val implementedMethods = Seq("isLast", "isAfterLast", "isBeforeFirst", "isFirst", "next",
-    "getConcurrency", "close", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
-    "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "getResultSet", "getUpdateCount", "getWarnings")
-
-  "A KsqlResultSet" when {
+  "A IteratorResultSet" when {
+    val implementedMethods = Seq("next", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
+      "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "close", "getWarnings")
 
     "validating specs" should {
 
-      val resultSetMetadata = new KsqlResultSetMetadata(
+      "throw not supported exception if not supported" in {
+
+        val resultSet = new IteratorResultSet[String](List.empty[HeaderField], Iterator.empty)
+        reflectMethods[IteratorResultSet[String]](implementedMethods, false, resultSet)
+          .foreach(method => {
+            assertThrows[SQLFeatureNotSupportedException] {
+              method()
+            }
+          })
+      }
+
+      "work if implemented" in {
+
+        val resultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes, Iterator(Seq(TableTypes.TABLE.name),
+          Seq(TableTypes.STREAM.name)))
+        resultSet.next should be(true)
+        resultSet.getString(1) should be(TableTypes.TABLE.name)
+        resultSet.getString("TABLE_TYPE") should be(TableTypes.TABLE.name)
+        resultSet.getString("table_type") should be(TableTypes.TABLE.name)
+        resultSet.next should be(true)
+        resultSet.getString(1) should be(TableTypes.STREAM.name)
+        resultSet.getString("TABLE_TYPE") should be(TableTypes.STREAM.name)
+        resultSet.getString("table_type") should be(TableTypes.STREAM.name)
+        assertThrows[SQLException] {
+          resultSet.getString("UNKNOWN")
+        }
+        resultSet.next should be(false)
+        resultSet.getWarnings should be(None.orNull)
+        resultSet.close
+      }
+    }
+  }
+
+  "A StreamedResultSet" when {
+    val implementedMethods = Seq("isLast", "isAfterLast", "isBeforeFirst", "isFirst", "next",
+      "getConcurrency", "close", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
+      "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "getResultSet", "getUpdateCount", "getWarnings")
+
+    "validating specs" should {
+
+      val resultSetMetadata = new KsqlResultSetMetaData(
         List(
           HeaderField("field1", Types.INTEGER, 16),
           HeaderField("field2", Types.BIGINT, 16),
@@ -37,8 +75,8 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
 
       "throw not supported exception if not supported" in {
 
-        val resultSet = new KsqlResultSet(resultSetMetadata, mock[KsqlQueryStream], 0)
-        reflectMethods[KsqlResultSet](implementedMethods, false, resultSet)
+        val resultSet = new StreamedResultSet(resultSetMetadata, mock[KsqlQueryStream], 0)
+        reflectMethods[StreamedResultSet](implementedMethods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               try {
@@ -65,7 +103,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
           (mockedQueryStream.close _).expects
         }
 
-        val resultSet = new KsqlResultSet(resultSetMetadata, mockedQueryStream)
+        val resultSet = new StreamedResultSet(resultSetMetadata, mockedQueryStream)
         resultSet.getMetaData should be(resultSetMetadata)
         resultSet.isLast should be(false)
         resultSet.isAfterLast should be(false)

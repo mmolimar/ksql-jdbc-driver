@@ -3,7 +3,7 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql.{Connection, ResultSet, SQLWarning, Statement, Types}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.resultset.{KsqlQueryStream, KsqlResultSet, KsqlResultSetMetadata, StaticResultSet}
+import com.github.mmolimar.ksql.jdbc.resultset._
 import io.confluent.ksql.parser.KsqlParser
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
 import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
@@ -184,7 +184,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     }
 
     val columns = queryDesc.getFields.asScala.map(f => HeaderField(f.getName, mapType(f.getSchema.getType), 0)).toList
-    new KsqlResultSet(new KsqlResultSetMetadata(columns), new KsqlQueryStream(stream), timeout)
+    new StreamedResultSet(new KsqlResultSetMetaData(columns), new KsqlQueryStream(stream), timeout)
   }
 
   private implicit def toResultSet(list: KsqlEntityList): ResultSet = {
@@ -200,9 +200,9 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           e.getCommandStatus.getStatus.name,
           e.getCommandStatus.getMessage
         ))
-        new StaticResultSet[String](commandStatusEntity, rows)
+        new IteratorResultSet[String](commandStatusEntity, rows)
       }
-      case e: ExecutionPlan => new StaticResultSet[String](executionPlanEntity, Iterator(Seq(e.getExecutionPlan)))
+      case e: ExecutionPlan => new IteratorResultSet[String](executionPlanEntity, Iterator(Seq(e.getExecutionPlan)))
       case e: FunctionDescriptionList => {
         val rows = e.getFunctions.asScala.map(f => Seq(
           e.getAuthor,
@@ -214,14 +214,14 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           f.getReturnType,
           f.getArguments.asScala.map(arg => s"${arg.getName}:${arg.getType}").mkString(", ")
         )).toIterator
-        new StaticResultSet[String](functionDescriptionListEntity, rows)
+        new IteratorResultSet[String](functionDescriptionListEntity, rows)
       }
       case e: FunctionNameList => {
         val rows = e.getFunctions.asScala.map(f => Seq(
           f.getName,
           f.getType.name
         )).toIterator
-        new StaticResultSet[String](functionNameListEntity, rows)
+        new IteratorResultSet[String](functionNameListEntity, rows)
       }
       case e: KafkaTopicsList => {
         val rows = e.getTopics.asScala.map(t => Seq(
@@ -231,7 +231,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           t.getRegistered.booleanValue,
           t.getReplicaInfo.asScala.mkString(", ")
         )).toIterator
-        new StaticResultSet[Any](kafkaTopicsListEntity, rows)
+        new IteratorResultSet[Any](kafkaTopicsListEntity, rows)
       }
       case e: KsqlTopicsList => {
         val rows = e.getTopics.asScala.map(t => Seq(
@@ -239,14 +239,14 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           t.getKafkaTopic,
           t.getFormat.name
         )).toIterator
-        new StaticResultSet[String](ksqlTopicsListEntity, rows)
+        new IteratorResultSet[String](ksqlTopicsListEntity, rows)
       }
       case e: PropertiesList => {
         val rows = e.getProperties.asScala.map(p => Seq(
           p._1,
           p._2.toString
         )).toIterator
-        new StaticResultSet[String](propertiesListEntity, rows)
+        new IteratorResultSet[String](propertiesListEntity, rows)
       }
       case e: Queries => {
         val rows = e.getQueries.asScala.map(q => Seq(
@@ -254,7 +254,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           q.getQueryString,
           q.getSinks.asScala.mkString(", ")
         )).toIterator
-        new StaticResultSet[String](queriesEntity, rows)
+        new IteratorResultSet[String](queriesEntity, rows)
       }
       case e@(_: QueryDescriptionEntity | _: QueryDescriptionList) => {
         val descriptions: Seq[QueryDescription] = if (e.isInstanceOf[QueryDescriptionEntity]) {
@@ -271,7 +271,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           d.getTopology,
           d.getExecutionPlan
         )).toIterator
-        new StaticResultSet[String](queryDescriptionEntityList, rows)
+        new IteratorResultSet[String](queryDescriptionEntityList, rows)
       }
       case e@(_: SourceDescriptionEntity | _: SourceDescriptionList) => {
         val descriptions: Seq[SourceDescription] = if (e.isInstanceOf[SourceDescriptionEntity]) {
@@ -292,7 +292,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           d.getErrorStats,
           d.getTimestamp
         )).toIterator
-        new StaticResultSet[Any](sourceDescriptionEntityList, rows)
+        new IteratorResultSet[Any](sourceDescriptionEntityList, rows)
       }
       case e: StreamsList => {
         val rows = e.getStreams.asScala.map(s => Seq(
@@ -300,7 +300,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           s.getTopic,
           s.getFormat
         )).toIterator
-        new StaticResultSet[String](streamsListEntity, rows)
+        new IteratorResultSet[String](streamsListEntity, rows)
       }
       case e: TablesList => {
         val rows = e.getTables.asScala.map(t => Seq(
@@ -309,7 +309,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           t.getFormat,
           t.getIsWindowed
         )).toIterator
-        new StaticResultSet[Any](tablesListEntity, rows)
+        new IteratorResultSet[Any](tablesListEntity, rows)
       }
       case e: TopicDescription => {
         val rows = Iterator(Seq(
@@ -318,7 +318,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           e.getFormat,
           e.getSchemaString
         ))
-        new StaticResultSet[String](topicDescriptionEntity, rows)
+        new IteratorResultSet[String](topicDescriptionEntity, rows)
       }
     }).getOrElse(throw KsqlCommandError(s"Cannot build result set for '${list.get(0).getStatementText}'."))
   }

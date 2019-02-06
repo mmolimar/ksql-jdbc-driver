@@ -2,10 +2,10 @@ package com.github.mmolimar.ksql.jdbc.resultset
 
 import java.io.Closeable
 import java.sql.{ResultSet, ResultSetMetaData}
-import java.util.Iterator
+import java.util.{Iterator => JIterator}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.InvalidColumn
+import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
 import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.client.KsqlRestClient
 import io.confluent.ksql.rest.entity.StreamedRow
@@ -16,8 +16,22 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.{Failure, Success, Try}
 
-private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream)
-  extends Closeable with Iterator[StreamedRow] {
+
+class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData,
+                                  private[jdbc] val rows: Iterator[Seq[T]]) extends AbstractResultSet(metadata, rows) {
+
+  def this(columns: List[HeaderField], rows: Iterator[Seq[T]]) =
+    this(new KsqlResultSetMetaData(columns), rows)
+
+  override protected def getValue[V <: AnyRef](columnIndex: Int): V = currentRow.get(columnIndex - 1).asInstanceOf[V]
+
+  override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(Seq.empty).size)
+
+  override protected def closeInherit: Unit = {}
+
+}
+
+private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends Closeable with JIterator[StreamedRow] {
 
   override def close: Unit = stream.close
 
@@ -27,8 +41,8 @@ private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream)
 
 }
 
-class KsqlResultSet(private val metadata: ResultSetMetaData,
-                    private val stream: KsqlQueryStream, val timeout: Long = 0)
+class StreamedResultSet(private val metadata: ResultSetMetaData,
+                        private val stream: KsqlQueryStream, val timeout: Long = 0)
   extends AbstractResultSet[StreamedRow](metadata, stream) {
 
   private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
