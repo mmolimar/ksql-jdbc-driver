@@ -17,11 +17,12 @@ import scala.concurrent.{Await, Future, TimeoutException}
 import scala.util.{Failure, Success, Try}
 
 
-class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData,
-                                  private[jdbc] val rows: Iterator[Seq[T]]) extends AbstractResultSet(metadata, rows) {
+class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData, private val maxRows: Long,
+                                  private[jdbc] val rows: Iterator[Seq[T]])
+  extends AbstractResultSet(metadata, maxRows, rows) {
 
-  def this(columns: List[HeaderField], rows: Iterator[Seq[T]]) =
-    this(new KsqlResultSetMetaData(columns), rows)
+  def this(columns: List[HeaderField], maxRows: Long, rows: Iterator[Seq[T]]) =
+    this(new KsqlResultSetMetaData(columns), maxRows, rows)
 
   override protected def getValue[V <: AnyRef](columnIndex: Int): V = currentRow.get(columnIndex - 1).asInstanceOf[V]
 
@@ -42,8 +43,8 @@ private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends 
 }
 
 class StreamedResultSet(private val metadata: ResultSetMetaData,
-                        private val stream: KsqlQueryStream, val timeout: Long = 0)
-  extends AbstractResultSet[StreamedRow](metadata, stream) {
+                        private val stream: KsqlQueryStream, private val maxRows: Long, val timeout: Long = 0)
+  extends AbstractResultSet[StreamedRow](metadata, maxRows, stream) {
 
   private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
 

@@ -12,17 +12,17 @@ import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 import scala.collection.JavaConverters._
 
 
-class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
+class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A IteratorResultSet" when {
     val implementedMethods = Seq("next", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
-      "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "close", "getWarnings")
+      "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "close", "getWarnings", "wasNull")
 
     "validating specs" should {
 
       "throw not supported exception if not supported" in {
 
-        val resultSet = new IteratorResultSet[String](List.empty[HeaderField], Iterator.empty)
+        val resultSet = new IteratorResultSet[String](List.empty[HeaderField], 0, Iterator.empty)
         reflectMethods[IteratorResultSet[String]](implementedMethods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
@@ -33,9 +33,12 @@ class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with
 
       "work if implemented" in {
 
-        val resultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes, Iterator(Seq(TableTypes.TABLE.name),
+        val resultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes, 2, Iterator(Seq(TableTypes.TABLE.name),
           Seq(TableTypes.STREAM.name)))
+
+        resultSet.wasNull should be(true)
         resultSet.next should be(true)
+
         resultSet.getString(1) should be(TableTypes.TABLE.name)
         resultSet.getString("TABLE_TYPE") should be(TableTypes.TABLE.name)
         resultSet.getString("table_type") should be(TableTypes.TABLE.name)
@@ -43,6 +46,7 @@ class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with
         resultSet.getString(1) should be(TableTypes.STREAM.name)
         resultSet.getString("TABLE_TYPE") should be(TableTypes.STREAM.name)
         resultSet.getString("table_type") should be(TableTypes.STREAM.name)
+        resultSet.wasNull should be(false)
         assertThrows[SQLException] {
           resultSet.getString("UNKNOWN")
         }
@@ -55,8 +59,8 @@ class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with
 
   "A StreamedResultSet" when {
     val implementedMethods = Seq("isLast", "isAfterLast", "isBeforeFirst", "isFirst", "next",
-      "getConcurrency", "close", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
-      "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "getResultSet", "getUpdateCount", "getWarnings")
+      "getConcurrency", "close", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort", "getInt",
+      "getLong", "getFloat", "getDouble", "getMetaData", "getResultSet", "getUpdateCount", "getWarnings", "wasNull")
 
     "validating specs" should {
 
@@ -103,12 +107,13 @@ class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with
           (mockedQueryStream.close _).expects
         }
 
-        val resultSet = new StreamedResultSet(resultSetMetadata, mockedQueryStream)
+        val resultSet = new StreamedResultSet(resultSetMetadata, mockedQueryStream, 0)
         resultSet.getMetaData should be(resultSetMetadata)
         resultSet.isLast should be(false)
         resultSet.isAfterLast should be(false)
         resultSet.isBeforeFirst should be(false)
         resultSet.getConcurrency should be(ResultSet.CONCUR_READ_ONLY)
+        resultSet.wasNull should be(true)
 
         resultSet.isFirst should be(true)
         resultSet.next should be(true)
@@ -136,6 +141,7 @@ class StreamedResultSetSpec extends WordSpec with Matchers with MockFactory with
           resultSet.getLong(index + 1) should be(e(6))
           resultSet.getFloat(index + 1) should be(e(7))
           resultSet.getDouble(index + 1) should be(e(8))
+          resultSet.wasNull should be(false)
         }
         }
 

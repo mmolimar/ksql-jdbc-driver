@@ -21,7 +21,7 @@ import scala.collection.JavaConverters._
 class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   val implementedMethods = Seq("execute", "executeQuery", "getResultSet", "getUpdateCount", "getResultSetType",
-    "getWarnings", "cancel")
+    "getWarnings", "getMaxRows", "cancel", "setMaxRows")
 
   "A KsqlStatement" when {
 
@@ -145,7 +145,13 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
           .once
         Option(statement.executeQuery("select * from test;")) should not be (None)
 
+        statement.getMaxRows should be(0)
         statement.getResultSet shouldNot be(None.orNull)
+        assertThrows[SQLException] {
+          statement.setMaxRows(-1)
+        }
+        statement.setMaxRows(1)
+        statement.getMaxRows should be(1)
 
         statement.getUpdateCount should be(-1)
         statement.getResultSetType should be(ResultSet.TYPE_FORWARD_ONLY)

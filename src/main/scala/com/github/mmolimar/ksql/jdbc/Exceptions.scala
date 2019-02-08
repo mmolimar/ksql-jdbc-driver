@@ -26,6 +26,10 @@ case class NotSupported(feature: String, override val cause: Throwable = None.or
   override val message = s"Feature not supported: $feature."
 }
 
+case class InvalidValue(prop: String, value: String, override val cause: Throwable = None.orNull) extends KsqlException {
+  override val message = s"value '' is not valid for property: $prop."
+}
+
 case class KsqlQueryError(override val message: String = "Error executing query.",
                           override val cause: Throwable = None.orNull) extends KsqlException
 

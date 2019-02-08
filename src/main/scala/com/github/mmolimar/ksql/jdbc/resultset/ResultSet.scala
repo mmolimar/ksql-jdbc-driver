@@ -401,10 +401,13 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 }
 
 private[resultset] abstract class AbstractResultSet[T](private val metadata: ResultSetMetaData,
+                                                       private val maxRows: Long,
                                                        private val records: Iterator[T]) extends ResultSetNotSupported {
 
   private val indexByLabel: Map[String, Int] = (1 to metadata.getColumnCount)
     .map(index => (metadata.getColumnLabel(index).toUpperCase -> index)).toMap
+  private var lastColumnNull = true
+  private var rowCounter = 0
 
   protected var currentRow: Option[T] = None
 
@@ -419,7 +422,11 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
   override final def next: Boolean = closed match {
     case true => throw ResultSetError("Result set is already closed.")
-    case false => nextResult
+    case false if maxRows != 0 && rowCounter >= maxRows => false
+    case _ =>
+      val result = nextResult
+      rowCounter += 1
+      result
   }
 
   override final def close: Unit = closed match {
@@ -472,13 +479,17 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
   override def getWarnings: SQLWarning = None.orNull
 
+  override def wasNull: Boolean = lastColumnNull
+
   private def getColumn[T <: AnyRef](columnLabel: String)(implicit ev: ClassTag[T]): T = {
     getColumn[T](getColumnIndex(columnLabel))
   }
 
   private def getColumn[T <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[T]): T = {
     checkRow(columnIndex)
-    inferValue[T](columnIndex)
+    val result = inferValue[T](columnIndex)
+    lastColumnNull = Option(result).map(_ => false).getOrElse(true)
+    result
   }
 
   private def checkRow(columnIndex: Int) = {
@@ -500,7 +511,7 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
     import ImplicitClasses._
     ev.runtimeClass match {
       case Any_ if ev.runtimeClass == value.getClass => value
-      case String_ => value.toString
+      case String_ => Option(value).map(_.toString).getOrElse(None.orNull)
       case JBoolean_ if value.isInstanceOf[String] => JBoolean.parseBoolean(value.asInstanceOf[String])
       case JBoolean_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].intValue != 0
       case JShort_ if value.isInstanceOf[String] => JShort.parseShort(value.asInstanceOf[String])

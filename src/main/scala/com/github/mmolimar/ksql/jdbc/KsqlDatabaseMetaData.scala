@@ -63,7 +63,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def storesUpperCaseQuotedIdentifiers: Boolean = throw NotSupported("storesUpperCaseQuotedIdentifiers")
 
   override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet =
-    new IteratorResultSet(List.empty[HeaderField], Iterator.empty)
+    new IteratorResultSet(List.empty[HeaderField], 0, Iterator.empty)
 
   override def getAttributes(catalog: String, schemaPattern: String, typeNamePattern: String,
                              attributeNamePattern: String): ResultSet = throw NotSupported("getAttributes")
@@ -234,13 +234,13 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
                                 tableNamePattern: String, columnNamePattern: String): ResultSet =
     throw NotSupported("getPseudoColumns")
 
-  override def getCatalogs: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.catalogs, Iterator.empty)
+  override def getCatalogs: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.catalogs, 0, Iterator.empty)
 
   override def getSuperTables(catalog: String, schemaPattern: String,
                               tableNamePattern: String): ResultSet = {
     validateCatalogAndSchema(catalog, schemaPattern)
 
-    new IteratorResultSet(DatabaseMetadataHeaders.superTables, Iterator.empty)
+    new IteratorResultSet(DatabaseMetadataHeaders.superTables, 0, Iterator.empty)
   }
 
   override def getMaxColumnsInOrderBy: Int = throw NotSupported("getMaxColumnsInOrderBy")
@@ -299,7 +299,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
         }).toIterator
     } else Iterator.empty
 
-    new IteratorResultSet(DatabaseMetadataHeaders.tables, itTables ++ itStreams)
+    new IteratorResultSet(DatabaseMetadataHeaders.tables, 0, itTables ++ itStreams)
   }
 
   override def supportsMultipleTransactions: Boolean = throw NotSupported("supportsMultipleTransactions")
@@ -322,7 +322,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getExtraNameCharacters: String = throw NotSupported("getExtraNameCharacters")
 
-  override def getSchemas: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.schemas, Iterator.empty)
+  override def getSchemas: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.schemas, 0, Iterator.empty)
 
   override def getSchemas(catalog: String, schemaPattern: String): ResultSet = {
     validateCatalogAndSchema(catalog, schemaPattern)
@@ -392,7 +392,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsTransactionIsolationLevel(level: Int): Boolean = throw NotSupported("supportsTransactionIsolationLevel")
 
-  override def getTableTypes: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes,
+  override def getTableTypes: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes, 0,
     Iterator(Seq(TableTypes.TABLE.name), Seq(TableTypes.STREAM.name)))
 
   override def getMaxColumnsInTable: Int = throw NotSupported("getMaxColumnsInTable")
@@ -446,7 +446,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
         }).toIterator
     }
-    new IteratorResultSet(DatabaseMetadataHeaders.columns, tableSchemas)
+    new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, tableSchemas)
   }
 
   override def supportsResultSetType(`type`: Int): Boolean = throw NotSupported("supportsResultSetType")
