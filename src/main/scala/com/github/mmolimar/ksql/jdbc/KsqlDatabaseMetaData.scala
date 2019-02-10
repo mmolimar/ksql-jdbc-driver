@@ -437,6 +437,10 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     "SHOW TOPICS", "SHOW FUNCTIONS", "SHOW STREAMS", "SHOW TABLES", "SHOW QUERIES", "SHOW PROPERTIES",
     "TERMINATE").mkString(",")
 
+  override def getMaxStatements: Int = 0
+
+  override def getMaxStatementLength: Int = 0
+
   override def isReadOnly: Boolean = true
 
   override def getProcedures(catalog: String, schemaPattern: String, procedureNamePattern: String): ResultSet = {
@@ -444,6 +448,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   }
 
   override def getCatalogs: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.catalogs, 0, Iterator.empty)
+
+  override def getConnection: Connection = ksqlConnection
 
   override def getSuperTables(catalog: String, schemaPattern: String,
                               tableNamePattern: String): ResultSet = {
@@ -498,7 +504,171 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def getTableTypes: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.tableTypes, 0,
     Iterator(Seq(TableTypes.TABLE.name), Seq(TableTypes.STREAM.name)))
 
-  override def getConnection: Connection = ksqlConnection
+  override def getTypeInfo: ResultSet = {
+    val booleanType = Seq(
+      "BOOLEAN",
+      Types.BOOLEAN,
+      3L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(false),
+      Boolean.box(false),
+      Boolean.box(false),
+      "BOOLEAN",
+      0,
+      0,
+      Types.BOOLEAN,
+      0,
+      10
+    )
+    val integerType = Seq(
+      "INTEGER",
+      Types.INTEGER,
+      10L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(true),
+      Boolean.box(false),
+      Boolean.box(false),
+      "INTEGER",
+      0,
+      0,
+      Types.INTEGER,
+      0,
+      10
+    )
+    val bitIntType = Seq(
+      "BIGINT",
+      Types.BIGINT,
+      19L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(true),
+      Boolean.box(false),
+      Boolean.box(false),
+      "BIGINT",
+      0,
+      0,
+      Types.BIGINT,
+      0,
+      10
+    )
+    val doubleType = Seq(
+      "DOUBLE",
+      Types.DOUBLE,
+      22L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(true),
+      Boolean.box(false),
+      Boolean.box(false),
+      "DOUBLE",
+      -308,
+      308,
+      Types.DOUBLE,
+      0,
+      10
+    )
+    val varcharType = Seq(
+      "VARCHAR",
+      Types.VARCHAR,
+      65535L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(false),
+      Boolean.box(false),
+      Boolean.box(false),
+      "STRING",
+      0,
+      0,
+      Types.VARCHAR,
+      0,
+      10
+    )
+    val arrayType = Seq(
+      "ARRAY",
+      Types.ARRAY,
+      65535L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(false),
+      Boolean.box(false),
+      Boolean.box(false),
+      "ARRAY",
+      0,
+      0,
+      Types.ARRAY,
+      0,
+      10
+    )
+    val mapType = Seq(
+      "JAVA_OBJECT",
+      Types.JAVA_OBJECT,
+      65535L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(false),
+      Boolean.box(false),
+      Boolean.box(false),
+      "ARRAY",
+      0,
+      0,
+      Types.JAVA_OBJECT,
+      0,
+      10
+    )
+    val structType = Seq(
+      "STRUCT",
+      Types.STRUCT,
+      65535L,
+      "",
+      "",
+      "",
+      DatabaseMetaData.typeNullable,
+      Boolean.box(false),
+      DatabaseMetaData.typeSearchable,
+      Boolean.box(false),
+      Boolean.box(false),
+      Boolean.box(false),
+      "STRUCT",
+      0,
+      0,
+      Types.STRUCT,
+      0,
+      10
+    )
+    val typeIterator: Iterator[Seq[Any]] = Iterator(booleanType, integerType, bitIntType, doubleType, varcharType,
+      arrayType, mapType, structType)
+    new IteratorResultSet(DatabaseMetadataHeaders.typeInfo, 0, typeIterator)
+  }
 
   override def getColumns(catalog: String, schemaPattern: String,
                           tableNamePattern: String, columnNamePattern: String): ResultSet = {
@@ -509,7 +679,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
       if (Option(columnNamePattern).getOrElse("").equals("")) ".*" else columnNamePattern
     }.toUpperCase.r.pattern
 
-    var tableSchemas: Iterator[Seq[AnyRef]] = Iterator.empty
+    var columns: Iterator[Seq[AnyRef]] = Iterator.empty
     while (tables.next) {
       val tableName = tables.getString(3)
       val describe = ksqlConnection.executeKsqlCommand(s"DESCRIBE $tableName;")
@@ -530,9 +700,9 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
           "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(17), "", "", "", "",
           Int.box(Types.VARCHAR), "YES", "YES"))
       }
-      tableSchemas ++= defaultFields
+      columns ++= defaultFields
 
-      tableSchemas ++= describe.getResponse.asScala.map(_.asInstanceOf[SourceDescriptionEntity])
+      columns ++= describe.getResponse.asScala.map(_.asInstanceOf[SourceDescriptionEntity])
         .map(_.getSourceDescription)
         .filter(sd => columnPattern.matcher(sd.getName.toUpperCase).matches)
         .map(sd => {
@@ -543,14 +713,18 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
         }).toIterator
     }
-    new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, tableSchemas)
+    new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, columns)
   }
+
+  override def supportsCatalogsInDataManipulation: Boolean = false
 
   override def supportsCatalogsInTableDefinitions: Boolean = false
 
   override def supportsMultipleResultSets: Boolean = false
 
   override def supportsSchemasInDataManipulation: Boolean = false
+
+  override def supportsSchemasInTableDefinitions: Boolean = false
 
   private def validateCatalogAndSchema(catalog: String, schema: String) = {
     if (catalog != null && catalog != "") throw UnknownCatalog(s"Unknown catalog $catalog")

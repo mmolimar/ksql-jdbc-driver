@@ -85,15 +85,36 @@ object DatabaseMetadataHeaders {
   )
 
   val procedures = List(
-    HeaderField("PROCEDURE_CAT", Types.CHAR, 255),
-    HeaderField("PROCEDURE_SCHEM", Types.CHAR, 255),
-    HeaderField("PROCEDURE_NAME", Types.CHAR, 255),
-    HeaderField("reserved1", Types.CHAR, 0),
-    HeaderField("reserved2", Types.CHAR, 0),
-    HeaderField("reserved3", Types.CHAR, 0),
-    HeaderField("REMARKS", Types.CHAR, 255),
+    HeaderField("PROCEDURE_CAT", Types.VARCHAR, 255),
+    HeaderField("PROCEDURE_SCHEM", Types.VARCHAR, 255),
+    HeaderField("PROCEDURE_NAME", Types.VARCHAR, 255),
+    HeaderField("reserved1", Types.VARCHAR, 0),
+    HeaderField("reserved2", Types.VARCHAR, 0),
+    HeaderField("reserved3", Types.VARCHAR, 0),
+    HeaderField("REMARKS", Types.VARCHAR, 255),
     HeaderField("PROCEDURE_TYPE", Types.SMALLINT, 6),
-    HeaderField("SPECIFIC_NAME", Types.CHAR, 255)
+    HeaderField("SPECIFIC_NAME", Types.VARCHAR, 255)
+  )
+
+  val typeInfo = List(
+    HeaderField("TYPE_NAME", Types.VARCHAR, 32),
+    HeaderField("DATA_TYPE", Types.INTEGER, 5),
+    HeaderField("PRECISION", Types.INTEGER, 10),
+    HeaderField("LITERAL_PREFIX", Types.VARCHAR, 4),
+    HeaderField("LITERAL_SUFFIX", Types.VARCHAR, 4),
+    HeaderField("CREATE_PARAMS", Types.VARCHAR, 32),
+    HeaderField("NULLABLE", Types.SMALLINT, 5),
+    HeaderField("CASE_SENSITIVE", Types.BOOLEAN, 3),
+    HeaderField("SEARCHABLE", Types.SMALLINT, 3),
+    HeaderField("UNSIGNED_ATTRIBUTE", Types.BOOLEAN, 3),
+    HeaderField("FIXED_PREC_SCALE", Types.BOOLEAN, 3),
+    HeaderField("AUTO_INCREMENT", Types.BOOLEAN, 3),
+    HeaderField("LOCAL_TYPE_NAME", Types.VARCHAR, 32),
+    HeaderField("MINIMUM_SCALE", Types.SMALLINT, 5),
+    HeaderField("MAXIMUM_SCALE", Types.SMALLINT, 5),
+    HeaderField("SQL_DATA_TYPE", Types.INTEGER, 10),
+    HeaderField("SQL_DATETIME_SUB", Types.INTEGER, 10),
+    HeaderField("NUM_PREC_RADIX", Types.INTEGER, 10)
   )
 
   def mapDataType(dataType: String): Int = dataType match {

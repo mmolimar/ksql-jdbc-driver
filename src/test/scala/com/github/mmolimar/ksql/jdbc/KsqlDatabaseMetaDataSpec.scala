@@ -18,9 +18,11 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
     val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
       "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
       "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
-      "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly",
-      "supportsMultipleResultSets", "getSQLKeywords", "getProcedures", "supportsCatalogsInTableDefinitions",
-      "supportsSchemasInDataManipulation")
+      "getMaxStatements", "getMaxStatementLength", "getTableTypes", "getTables", "getTypeInfo", "getSchemas",
+      "getSuperTables", "getUDTs", "getColumns", "isReadOnly", "getSQLKeywords", "getProcedures",
+      "supportsCatalogsInDataManipulation", "supportsCatalogsInTableDefinitions", "supportsMultipleResultSets",
+      "supportsSchemasInDataManipulation", "supportsSchemasInTableDefinitions"
+    )
 
     val mockResponse = mock[Response]
     (mockResponse.getEntity _).expects.returns(mock[InputStream]).noMoreThanOnce
@@ -119,12 +121,17 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
           metadata.getColumns("", "test", "test", "test")
         }
 
+        metadata.getTypeInfo.getMetaData.getColumnCount should be(18)
         metadata.supportsMultipleResultSets should be(false)
         metadata.getSQLKeywords.split(",").length should be(17)
+        metadata.getMaxStatements should be(0)
+        metadata.getMaxStatementLength should be(0)
         metadata.getProcedures(None.orNull, None.orNull, None.orNull).next should be(false)
+        metadata.supportsCatalogsInDataManipulation should be(false)
         metadata.supportsCatalogsInTableDefinitions should be(false)
+        metadata.supportsMultipleResultSets should be(false)
         metadata.supportsSchemasInDataManipulation should be(false)
-        metadata.supportsSchemasInDataManipulation should be(false)
+        metadata.supportsSchemasInTableDefinitions should be(false)
 
       }
     }
