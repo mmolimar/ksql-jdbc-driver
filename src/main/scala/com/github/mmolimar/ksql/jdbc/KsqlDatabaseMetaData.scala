@@ -441,6 +441,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getMaxStatementLength: Int = 0
 
+  override def getURL: String = ksqlConnection.values.jdbcUrl
+
   override def isReadOnly: Boolean = true
 
   override def getProcedures(catalog: String, schemaPattern: String, procedureNamePattern: String): ResultSet = {
@@ -716,15 +718,29 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, columns)
   }
 
+  override def supportsAlterTableWithAddColumn: Boolean = false
+
+  override def supportsAlterTableWithDropColumn: Boolean = false
+
   override def supportsCatalogsInDataManipulation: Boolean = false
 
   override def supportsCatalogsInTableDefinitions: Boolean = false
 
+  override def supportsCatalogsInProcedureCalls: Boolean = false
+
   override def supportsMultipleResultSets: Boolean = false
+
+  override def supportsMultipleTransactions: Boolean = false
+
+  override def supportsSavepoints: Boolean = false
 
   override def supportsSchemasInDataManipulation: Boolean = false
 
   override def supportsSchemasInTableDefinitions: Boolean = false
+
+  override def supportsStoredFunctionsUsingCallSyntax: Boolean = true
+
+  override def supportsStoredProcedures: Boolean = false
 
   private def validateCatalogAndSchema(catalog: String, schema: String) = {
     if (catalog != null && catalog != "") throw UnknownCatalog(s"Unknown catalog $catalog")

@@ -14,9 +14,16 @@ import scala.util.{Failure, Success, Try}
 
 case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[String, String]) {
 
-  def getKsqlUrl: String = {
+  def ksqlUrl: String = {
     val protocol = if (isSecured) "https://" else "http://"
     protocol + ksqlServer + ":" + port
+  }
+
+  def jdbcUrl: String = {
+    val suffix = if (config.isEmpty) "" else "?"
+    s"${KsqlDriver.ksqlPrefix}$ksqlServer:$port$suffix${
+      config.map(c => s"${c._1}=${c._2}").mkString("&")
+    }"
   }
 
   def isSecured: Boolean = config.getOrElse("secured", "false").toBoolean
@@ -27,7 +34,8 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
 
 }
 
-class KsqlConnection(values: KsqlConnectionValues, properties: Properties) extends Connection with WrapperNotSupported {
+class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties: Properties)
+  extends Connection with WrapperNotSupported {
 
   private val ksqlClient = init
 
@@ -37,7 +45,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
     } else {
       Collections.emptyMap[String, AnyRef]
     }
-    new KsqlRestClient(values.getKsqlUrl, props)
+    new KsqlRestClient(values.ksqlUrl, props)
   }
 
   private[jdbc] def validate: Unit = {
