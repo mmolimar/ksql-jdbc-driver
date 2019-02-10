@@ -211,6 +211,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           e.getName,
           e.getPath,
           e.getVersion,
+          e.getType.name,
           f.getDescription,
           f.getReturnType,
           f.getArguments.asScala.map(arg => s"${arg.getName}:${arg.getType}").mkString(", ")

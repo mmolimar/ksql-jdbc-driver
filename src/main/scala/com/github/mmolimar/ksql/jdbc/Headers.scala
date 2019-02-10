@@ -84,6 +84,18 @@ object DatabaseMetadataHeaders {
     HeaderField("IS_GENERATEDCOLUMN", Types.VARCHAR, 3)
   )
 
+  val procedures = List(
+    HeaderField("PROCEDURE_CAT", Types.CHAR, 255),
+    HeaderField("PROCEDURE_SCHEM", Types.CHAR, 255),
+    HeaderField("PROCEDURE_NAME", Types.CHAR, 255),
+    HeaderField("reserved1", Types.CHAR, 0),
+    HeaderField("reserved2", Types.CHAR, 0),
+    HeaderField("reserved3", Types.CHAR, 0),
+    HeaderField("REMARKS", Types.CHAR, 255),
+    HeaderField("PROCEDURE_TYPE", Types.SMALLINT, 6),
+    HeaderField("SPECIFIC_NAME", Types.CHAR, 255)
+  )
+
   def mapDataType(dataType: String): Int = dataType match {
     case "BOOL" | "BOOLEAN" => Types.BOOLEAN
     case "INT" | "INTEGER" => Types.INTEGER

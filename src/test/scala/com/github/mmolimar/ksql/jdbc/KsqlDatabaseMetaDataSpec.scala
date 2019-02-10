@@ -14,16 +14,15 @@ import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
-  val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
-    "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
-    "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
-    "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly",
-    "supportsMultipleResultSets")
-
   "A KsqlDatabaseMetaData" when {
+    val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
+      "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
+      "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
+      "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly",
+      "supportsMultipleResultSets", "getSQLKeywords", "getProcedures", "supportsCatalogsInTableDefinitions")
 
     val mockResponse = mock[Response]
-    (mockResponse.getEntity _).expects.returns(mock[InputStream])
+    (mockResponse.getEntity _).expects.returns(mock[InputStream]).noMoreThanOnce
 
     val mockKsqlRestClient = mock[MockableKsqlRestClient]
 
@@ -120,7 +119,27 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         }
 
         metadata.supportsMultipleResultSets should be(false)
+        metadata.getSQLKeywords.split(",").length should be(17)
+        metadata.getProcedures(None.orNull, None.orNull, None.orNull).next should be(false)
+        metadata.supportsCatalogsInTableDefinitions should be(false)
 
+      }
+    }
+  }
+
+  "A DatabaseMetaDataNotSupported" when {
+
+    "validating specs" should {
+
+      "throw not supported exception if not supported" in {
+
+        val metadata = new DatabaseMetaDataNotSupported
+        reflectMethods[DatabaseMetaDataNotSupported](Seq.empty, false, metadata)
+          .foreach(method => {
+            assertThrows[SQLFeatureNotSupportedException] {
+              method()
+            }
+          })
       }
     }
   }
