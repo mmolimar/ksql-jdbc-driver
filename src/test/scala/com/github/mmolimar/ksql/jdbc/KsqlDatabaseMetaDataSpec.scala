@@ -19,7 +19,8 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
       "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
       "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
       "getTableTypes", "getTables", "getSchemas", "getSuperTables", "getUDTs", "getColumns", "isReadOnly",
-      "supportsMultipleResultSets", "getSQLKeywords", "getProcedures", "supportsCatalogsInTableDefinitions")
+      "supportsMultipleResultSets", "getSQLKeywords", "getProcedures", "supportsCatalogsInTableDefinitions",
+      "supportsSchemasInDataManipulation")
 
     val mockResponse = mock[Response]
     (mockResponse.getEntity _).expects.returns(mock[InputStream]).noMoreThanOnce
@@ -122,6 +123,8 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         metadata.getSQLKeywords.split(",").length should be(17)
         metadata.getProcedures(None.orNull, None.orNull, None.orNull).next should be(false)
         metadata.supportsCatalogsInTableDefinitions should be(false)
+        metadata.supportsSchemasInDataManipulation should be(false)
+        metadata.supportsSchemasInDataManipulation should be(false)
 
       }
     }

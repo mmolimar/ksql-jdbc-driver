@@ -122,7 +122,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def setTypeMap(map: util.Map[String, Class[_]]): Unit = throw NotSupported("setTypeMap")
 
-  override def getCatalog: String = throw NotSupported("getCatalog")
+  override def getCatalog: String = None.orNull
 
   override def createClob: Clob = throw NotSupported("createClob")
 
@@ -140,7 +140,7 @@ class KsqlConnection(values: KsqlConnectionValues, properties: Properties) exten
 
   override def createArrayOf(typeName: String, elements: scala.Array[AnyRef]): Array = throw NotSupported("createArrayOf")
 
-  override def setCatalog(catalog: String): Unit = throw NotSupported("setCatalog")
+  override def setCatalog(catalog: String): Unit = {}
 
   override def close: Unit = ksqlClient.close
 

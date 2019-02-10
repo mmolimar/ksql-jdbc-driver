@@ -550,6 +550,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsMultipleResultSets: Boolean = false
 
+  override def supportsSchemasInDataManipulation: Boolean = false
+
   private def validateCatalogAndSchema(catalog: String, schema: String) = {
     if (catalog != null && catalog != "") throw UnknownCatalog(s"Unknown catalog $catalog")
     if (schema != null && schema != "") throw UnknownSchema(s"Unknown schema $schema")
