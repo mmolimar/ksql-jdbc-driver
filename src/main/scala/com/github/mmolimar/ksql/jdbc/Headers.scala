@@ -16,16 +16,6 @@ object HeaderField {
   }
 }
 
-private object implicits {
-
-  implicit def toIndexedMap(headers: List[HeaderField]): Map[Int, HeaderField] = {
-    headers.zipWithIndex.map { case (header, index) => {
-      HeaderField(header.name, header.label, header.jdbcType, header.length, index + 1)
-    }
-    }.map(h => h.index -> h).toMap
-  }
-}
-
 object DatabaseMetadataHeaders {
 
   val tableTypes = List(HeaderField("TABLE_TYPE", Types.VARCHAR, 0))

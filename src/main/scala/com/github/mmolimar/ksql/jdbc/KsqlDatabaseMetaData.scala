@@ -3,10 +3,13 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql.{Connection, DatabaseMetaData, ResultSet, RowIdLifetime, Types}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
+import com.github.mmolimar.ksql.jdbc.implicits.ResultSetStream
 import com.github.mmolimar.ksql.jdbc.resultset.IteratorResultSet
 import io.confluent.ksql.rest.entity.{SourceDescriptionEntity, StreamsList, TablesList}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
+
 
 object TableTypes {
 
@@ -429,6 +432,12 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getDatabaseMinorVersion: Int = KsqlDriver.driverMinorVersion
 
+  override def getCatalogTerm: String = "TOPIC"
+
+  override def getSchemaTerm: String = ""
+
+  override def getProcedureTerm: String = ""
+
   override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet =
     new IteratorResultSet(List.empty[HeaderField], 0, Iterator.empty)
 
@@ -682,8 +691,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     }.toUpperCase.r.pattern
 
     var columns: Iterator[Seq[AnyRef]] = Iterator.empty
-    while (tables.next) {
-      val tableName = tables.getString(3)
+    tables.toStream.foreach { table =>
+      val tableName = table.getString(3)
       val describe = ksqlConnection.executeKsqlCommand(s"DESCRIBE $tableName;")
       if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName: " +
         describe.getErrorMessage.getMessage)
@@ -718,6 +727,14 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, columns)
   }
 
+  override def getNumericFunctions: String = availableFunctions(None, Set("INT", "BIGINT", "DOUBLE")).mkString(",")
+
+  override def getStringFunctions: String = availableFunctions(None, Set("VARCHAR", "STRING")).mkString(",")
+
+  override def getSystemFunctions: String = availableFunctions(Some("Confluent")).mkString(",")
+
+  override def getTimeDateFunctions: String = availableFunctions(None, Set.empty).mkString(",")
+
   override def supportsAlterTableWithAddColumn: Boolean = false
 
   override def supportsAlterTableWithDropColumn: Boolean = false
@@ -741,6 +758,24 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def supportsStoredFunctionsUsingCallSyntax: Boolean = true
 
   override def supportsStoredProcedures: Boolean = false
+
+  private def availableFunctions(author: Option[String] = None, fnTypes: Set[String] = Set(".*")): Set[String] = {
+    var functions = mutable.Set.empty[String]
+
+    (ksqlConnection.createStatement.executeQuery("LIST FUNCTIONS")).toStream.foreach { fn =>
+      val fnName = fn.getString("FUNCTION_NAME_FN_NAME")
+
+      ksqlConnection.createStatement.executeQuery(s"DESCRIBE FUNCTION $fnName").toStream.foreach { fnDesc =>
+        val fnAuthor = fnDesc.getString("FUNCTION_DESCRIPTION_AUTHOR").trim.toUpperCase
+        val returnType = fnDesc.getString("FUNCTION_DESCRIPTION_FN_RETURN_TYPE")
+        if (fnTypes.filter(returnType.matches(_)).nonEmpty &&
+          (author.isEmpty || author.get.toUpperCase == fnAuthor.toUpperCase)) {
+          functions += fnName
+        }
+      }
+    }
+    functions.toSet
+  }
 
   private def validateCatalogAndSchema(catalog: String, schema: String) = {
     if (catalog != null && catalog != "") throw UnknownCatalog(s"Unknown catalog $catalog")

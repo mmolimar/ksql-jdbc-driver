@@ -6,10 +6,12 @@ import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
-import io.confluent.ksql.rest.entity.{KsqlEntityList, KsqlErrorMessage}
+import io.confluent.ksql.rest.entity._
 import javax.ws.rs.core.Response
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+
+import scala.collection.JavaConverters._
 
 
 class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
@@ -18,9 +20,10 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
     val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
       "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
       "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
-      "getMaxStatements", "getMaxStatementLength", "getTableTypes", "getTables", "getTypeInfo", "getSchemas",
-      "getSuperTables", "getUDTs", "getColumns", "getURL", "isReadOnly", "getSQLKeywords", "getProcedures",
-      "supportsAlterTableWithAddColumn", "supportsAlterTableWithDropColumn",
+      "getCatalogTerm", "getMaxStatements", "getMaxStatementLength", "getTableTypes", "getTables", "getTypeInfo",
+      "getSchemas", "getSuperTables", "getUDTs", "getColumns", "getURL", "isReadOnly", "getSQLKeywords", "getProcedures",
+      "getNumericFunctions", "getSchemaTerm", "getStringFunctions", "getSystemFunctions", "getTimeDateFunctions",
+      "getProcedureTerm", "supportsAlterTableWithAddColumn", "supportsAlterTableWithDropColumn",
       "supportsCatalogsInDataManipulation", "supportsCatalogsInTableDefinitions", "supportsCatalogsInProcedureCalls",
       "supportsMultipleResultSets", "supportsMultipleTransactions", "supportsSavepoints",
       "supportsSchemasInDataManipulation", "supportsSchemasInTableDefinitions",
@@ -28,20 +31,19 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
     )
 
     val mockResponse = mock[Response]
-    (mockResponse.getEntity _).expects.returns(mock[InputStream]).noMoreThanOnce
-
-    val mockKsqlRestClient = mock[MockableKsqlRestClient]
+    val mockedKsqlRestClient = mock[MockableKsqlRestClient]
 
     val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
     val ksqlConnection = new KsqlConnection(values, new Properties) {
-      override def init: KsqlRestClient = mockKsqlRestClient
+      override def init: KsqlRestClient = mockedKsqlRestClient
     }
     val metadata = new KsqlDatabaseMetaData(ksqlConnection)
 
     "validating specs" should {
 
       "throw not supported exception if not supported" in {
-        (mockKsqlRestClient.makeQueryRequest _).expects(*)
+        (mockResponse.getEntity _).expects.returns(mock[InputStream]).once
+        (mockedKsqlRestClient.makeQueryRequest _).expects(*)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .anyNumberOfTimes
 
@@ -54,39 +56,80 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
       }
 
       "work if implemented" in {
+        val specialMethods = Set("getTables", "getColumns", "getNumericFunctions", "getStringFunctions",
+          "getSystemFunctions", "getTimeDateFunctions")
         val methods = implementedMethods
-          .filter(!_.equals("getTables"))
-          .filter(!_.equals("getColumns"))
+          .filterNot(specialMethods.contains(_))
 
         reflectMethods[KsqlDatabaseMetaData](methods, true, metadata)
           .foreach(method => {
             method()
           })
 
-        (mockKsqlRestClient.makeQueryRequest _).expects(*)
-          .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
-          .anyNumberOfTimes
-
-        (mockKsqlRestClient.makeKsqlRequest _).expects(*)
-          .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error message", Collections.emptyList[String])))
-          .once
-
         assertThrows[SQLException] {
           metadata.getTables("", "", "", Array[String]("test"))
         }
+
+        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+          .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error message", Collections.emptyList[String])))
+          .once
         assertThrows[SQLException] {
           metadata.getTables("", "", "", Array[String](TableTypes.TABLE.name))
         }
 
-        (mockKsqlRestClient.makeKsqlRequest _).expects(*)
+        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
-          .anyNumberOfTimes
-
+          .twice
         metadata.getTables("", "", "[a-z]*",
           Array[String](TableTypes.TABLE.name, TableTypes.STREAM.name)).next should be(false)
 
+        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+          .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
+          .twice
+        metadata.getColumns("", "", "", "").next should be(false)
+
+        assertThrows[SQLException] {
+          metadata.getColumns("test", "", "test", "test")
+        }
+        assertThrows[SQLException] {
+          metadata.getColumns("", "test", "test", "test")
+        }
+
+        val fnList = new FunctionNameList(
+          "LIST FUNCTIONS;",
+          List(new SimpleFunctionInfo("TESTFN", FunctionType.scalar)).asJava
+        )
+        val entityListFn = new KsqlEntityList
+        entityListFn.add(fnList)
+        (mockedKsqlRestClient.makeKsqlRequest _).expects("LIST FUNCTIONS;")
+          .returns(RestResponse.successful[KsqlEntityList](entityListFn))
+          .repeat(4)
+
+        val descFn = new FunctionDescriptionList("DESCRIBE FUNCTION test;",
+          "TESTFN", "Description", "Confluent", "version", "path",
+          List(
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description"),
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "STRING", "Description")
+
+          ).asJava,
+          FunctionType.scalar
+        )
+        val entityDescribeFn = new KsqlEntityList
+        entityDescribeFn.add(descFn)
+        (mockedKsqlRestClient.makeKsqlRequest _).expects("DESCRIBE FUNCTION TESTFN;")
+          .returns(RestResponse.successful[KsqlEntityList](entityDescribeFn))
+          .repeat(4)
+
+        metadata.getNumericFunctions should be("TESTFN")
+        metadata.getStringFunctions should be("TESTFN")
+        metadata.getSystemFunctions should be("TESTFN")
+        metadata.getTimeDateFunctions should be("")
+
         Option(metadata.getConnection) should not be (None)
         metadata.getCatalogs.next should be(false)
+        metadata.getCatalogTerm should be("TOPIC")
+        metadata.getSchemaTerm should be ("")
+        metadata.getProcedureTerm should be ("")
 
         val tableTypes = metadata.getTableTypes
         tableTypes.next should be(true)
@@ -116,17 +159,8 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
           metadata.getSuperTables("", "test", "test")
         }
 
-        metadata.getColumns("", "", "", "").next should be(false)
-        assertThrows[SQLException] {
-          metadata.getColumns("test", "", "test", "test")
-        }
-        assertThrows[SQLException] {
-          metadata.getColumns("", "test", "test", "test")
-        }
-
         metadata.getURL should be("jdbc:ksql://localhost:8080")
         metadata.getTypeInfo.getMetaData.getColumnCount should be(18)
-        metadata.supportsMultipleResultSets should be(false)
         metadata.getSQLKeywords.split(",").length should be(17)
         metadata.getMaxStatements should be(0)
         metadata.getMaxStatementLength should be(0)

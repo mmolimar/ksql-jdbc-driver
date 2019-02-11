@@ -181,7 +181,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         val functionDescriptionList = new FunctionDescriptionList("DESCRIBE FUNCTION test;",
           "TEST", "Description", "author", "version", "path",
           List(
-            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "LONG", "Description")
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description")
           ).asJava,
           FunctionType.scalar
         )
