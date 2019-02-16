@@ -97,39 +97,54 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
 
         val fnList = new FunctionNameList(
           "LIST FUNCTIONS;",
-          List(new SimpleFunctionInfo("TESTFN", FunctionType.scalar)).asJava
+          List(
+            new SimpleFunctionInfo("TESTFN", FunctionType.scalar),
+            new SimpleFunctionInfo("TESTDATEFN", FunctionType.scalar)
+          ).asJava
         )
         val entityListFn = new KsqlEntityList
         entityListFn.add(fnList)
-        (mockedKsqlRestClient.makeKsqlRequest _).expects("LIST FUNCTIONS;")
-          .returns(RestResponse.successful[KsqlEntityList](entityListFn))
-          .repeat(4)
 
-        val descFn = new FunctionDescriptionList("DESCRIBE FUNCTION test;",
+        val descFn1 = new FunctionDescriptionList("DESCRIBE FUNCTION testfn;",
           "TESTFN", "Description", "Confluent", "version", "path",
           List(
             new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description"),
             new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "STRING", "Description")
-
           ).asJava,
           FunctionType.scalar
         )
-        val entityDescribeFn = new KsqlEntityList
-        entityDescribeFn.add(descFn)
+        val descFn2 = new FunctionDescriptionList("DESCRIBE FUNCTION testdatefn;",
+          "TESTDATEFN", "Description", "Unknown", "version", "path",
+          List(
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description")
+          ).asJava,
+          FunctionType.scalar
+        )
+        val entityDescribeFn1 = new KsqlEntityList
+        entityDescribeFn1.add(descFn1)
+        val entityDescribeFn2 = new KsqlEntityList
+        entityDescribeFn2.add(descFn2)
+
+        (mockedKsqlRestClient.makeKsqlRequest _).expects("LIST FUNCTIONS;")
+          .returns(RestResponse.successful[KsqlEntityList](entityListFn))
+          .repeat(4)
         (mockedKsqlRestClient.makeKsqlRequest _).expects("DESCRIBE FUNCTION TESTFN;")
-          .returns(RestResponse.successful[KsqlEntityList](entityDescribeFn))
+          .returns(RestResponse.successful[KsqlEntityList](entityDescribeFn1))
+          .repeat(4)
+        (mockedKsqlRestClient.makeKsqlRequest _).expects("DESCRIBE FUNCTION TESTDATEFN;")
+          .returns(RestResponse.successful[KsqlEntityList](entityDescribeFn2))
           .repeat(4)
 
-        metadata.getNumericFunctions should be("TESTFN")
+        metadata.getNumericFunctions should be("TESTDATEFN,TESTFN")
         metadata.getStringFunctions should be("TESTFN")
         metadata.getSystemFunctions should be("TESTFN")
-        metadata.getTimeDateFunctions should be("")
+        metadata.getTimeDateFunctions should be("TESTDATEFN")
 
         Option(metadata.getConnection) should not be (None)
         metadata.getCatalogs.next should be(false)
         metadata.getCatalogTerm should be("TOPIC")
-        metadata.getSchemaTerm should be ("")
-        metadata.getProcedureTerm should be ("")
+        metadata.getSchemaTerm should be("")
+        metadata.getProcedureTerm should be("")
 
         val tableTypes = metadata.getTableTypes
         tableTypes.next should be(true)

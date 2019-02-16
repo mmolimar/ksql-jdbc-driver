@@ -727,13 +727,23 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, columns)
   }
 
-  override def getNumericFunctions: String = availableFunctions(None, Set("INT", "BIGINT", "DOUBLE")).mkString(",")
+  override def getNumericFunctions: String = availableFunctions(
+    author = None,
+    types = Set("INT", "BIGINT", "DOUBLE")
+  ).mkString(",")
 
-  override def getStringFunctions: String = availableFunctions(None, Set("VARCHAR", "STRING")).mkString(",")
+  override def getStringFunctions: String = availableFunctions(
+    author = None,
+    types = Set("VARCHAR", "STRING")
+  ).mkString(",")
 
-  override def getSystemFunctions: String = availableFunctions(Some("Confluent")).mkString(",")
+  override def getSystemFunctions: String = availableFunctions(author = Some("Confluent")).mkString(",")
 
-  override def getTimeDateFunctions: String = availableFunctions(None, Set.empty).mkString(",")
+  override def getTimeDateFunctions: String = availableFunctions(
+    author = None,
+    names = Set(".*TIME.*", ".*DATE.*"),
+    types = Set.empty
+  ).mkString(",")
 
   override def supportsAlterTableWithAddColumn: Boolean = false
 
@@ -759,16 +769,17 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsStoredProcedures: Boolean = false
 
-  private def availableFunctions(author: Option[String] = None, fnTypes: Set[String] = Set(".*")): Set[String] = {
+  private def availableFunctions(author: Option[String] = None, names: Set[String] = Set.empty,
+                                 types: Set[String] = Set(".*")): Set[String] = {
     var functions = mutable.Set.empty[String]
 
     (ksqlConnection.createStatement.executeQuery("LIST FUNCTIONS")).toStream.foreach { fn =>
-      val fnName = fn.getString("FUNCTION_NAME_FN_NAME")
+      val fnName = fn.getString("FUNCTION_NAME_FN_NAME").toUpperCase
 
       ksqlConnection.createStatement.executeQuery(s"DESCRIBE FUNCTION $fnName").toStream.foreach { fnDesc =>
         val fnAuthor = fnDesc.getString("FUNCTION_DESCRIPTION_AUTHOR").trim.toUpperCase
-        val returnType = fnDesc.getString("FUNCTION_DESCRIPTION_FN_RETURN_TYPE")
-        if (fnTypes.filter(returnType.matches(_)).nonEmpty &&
+        val fnReturnType = fnDesc.getString("FUNCTION_DESCRIPTION_FN_RETURN_TYPE")
+        if ((types.filter(fnReturnType.matches(_)).nonEmpty || names.filter(fnName.matches(_)).nonEmpty) &&
           (author.isEmpty || author.get.toUpperCase == fnAuthor.toUpperCase)) {
           functions += fnName
         }
