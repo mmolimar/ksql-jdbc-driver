@@ -31,11 +31,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
 
   override def getColumnCount: Int = columns.size
 
-  override def getColumnDisplaySize(column: Int): Int = getField(column).jdbcType match {
-    case Types.INTEGER | Types.BIGINT | Types.DOUBLE => 16
-    case Types.BOOLEAN => 5
-    case _ => 64
-  }
+  override def getColumnDisplaySize(column: Int): Int = getField(column).length
 
   override def getColumnLabel(column: Int): String = getField(column).label
 

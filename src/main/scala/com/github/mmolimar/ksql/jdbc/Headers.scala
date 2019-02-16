@@ -131,7 +131,7 @@ object KsqlEntityHeaders {
   )
 
   val executionPlanEntity = List(
-    HeaderField("EXECUTION_PLAN", Types.VARCHAR, 256)
+    HeaderField("EXECUTION_PLAN", Types.VARCHAR, 255)
   )
 
   val functionDescriptionListEntity = List(
@@ -181,8 +181,8 @@ object KsqlEntityHeaders {
     HeaderField("QUERY_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
     HeaderField("QUERY_DESCRIPTION_SOURCES", Types.VARCHAR, 32),
     HeaderField("QUERY_DESCRIPTION_SINKS", Types.VARCHAR, 32),
-    HeaderField("QUERY_DESCRIPTION_TOPOLOGY", Types.VARCHAR, 256),
-    HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 256)
+    HeaderField("QUERY_DESCRIPTION_TOPOLOGY", Types.VARCHAR, 255),
+    HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 255)
   )
 
   val queryDescriptionEntityList = queryDescriptionEntity
@@ -220,6 +220,10 @@ object KsqlEntityHeaders {
     HeaderField("TOPIC_DESCRIPTION_KAFKA_TOPIC", Types.VARCHAR, 16),
     HeaderField("TOPIC_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
     HeaderField("TOPIC_DESCRIPTION_SCHEMA_STRING", Types.BOOLEAN, 64)
+  )
+
+  val printTopic = List(
+    HeaderField("PRINT_TOPIC", Types.VARCHAR, 255)
   )
 
 }

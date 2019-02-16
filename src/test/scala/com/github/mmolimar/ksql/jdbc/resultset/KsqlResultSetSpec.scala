@@ -93,7 +93,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
           })
       }
 
-      "work if implemented" in {
+      "work when reading from a query stream" in {
 
         val mockedQueryStream = mock[KsqlQueryStream]
         inSequence {
@@ -176,6 +176,41 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
           resultSet.getDouble("UNKNOWN")
         }
 
+        resultSet.next should be(false)
+        resultSet.isFirst should be(false)
+        resultSet.getWarnings should be(None.orNull)
+        resultSet.close
+        resultSet.close
+        assertThrows[SQLException] {
+          resultSet.next
+        }
+      }
+
+      "work when reading from an input stream" in {
+
+        val mockedInputStream = mock[KsqlInputStream]
+        inSequence {
+          (mockedInputStream.hasNext _).expects.returns(true)
+          (mockedInputStream.hasNext _).expects.returns(true)
+          val columnValues = Seq[AnyRef]("test")
+          val row = StreamedRow.row(new GenericRow(columnValues.asJava))
+          (mockedInputStream.next _).expects.returns(row)
+          (mockedInputStream.hasNext _).expects.returns(false)
+          (mockedInputStream.close _).expects
+        }
+
+        val resultSet = new StreamedResultSet(resultSetMetadata, mockedInputStream, 0)
+        resultSet.getMetaData should be(resultSetMetadata)
+        resultSet.isLast should be(false)
+        resultSet.isAfterLast should be(false)
+        resultSet.isBeforeFirst should be(false)
+        resultSet.getConcurrency should be(ResultSet.CONCUR_READ_ONLY)
+        resultSet.wasNull should be(true)
+
+        resultSet.isFirst should be(true)
+        resultSet.next should be(true)
+
+        resultSet.getString(1) should be("test")
         resultSet.next should be(false)
         resultSet.isFirst should be(false)
         resultSet.getWarnings should be(None.orNull)

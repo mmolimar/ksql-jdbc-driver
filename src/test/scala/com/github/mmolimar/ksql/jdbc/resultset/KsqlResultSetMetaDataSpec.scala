@@ -20,15 +20,15 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
 
       val resultSet = new KsqlResultSetMetaData(
         List(
-          HeaderField("field1", Types.INTEGER, 16),
+          HeaderField("field1", Types.INTEGER, 8),
           HeaderField("field2", Types.BIGINT, 16),
-          HeaderField("field3", Types.DOUBLE, 16),
-          HeaderField("field4", Types.BOOLEAN, 16),
-          HeaderField("field5", Types.VARCHAR, 16),
-          HeaderField("field6", Types.JAVA_OBJECT, 16),
-          HeaderField("field7", Types.ARRAY, 16),
-          HeaderField("field8", Types.STRUCT, 16),
-          HeaderField("field9", -999, 16)
+          HeaderField("field3", Types.DOUBLE, 32),
+          HeaderField("field4", Types.BOOLEAN, 5),
+          HeaderField("field5", Types.VARCHAR, 128),
+          HeaderField("field6", Types.JAVA_OBJECT, 255),
+          HeaderField("field7", Types.ARRAY, 255),
+          HeaderField("field8", Types.STRUCT, 512),
+          HeaderField("field9", -999, 9)
         ))
 
       "throw not supported exception if not supported" in {
@@ -50,7 +50,7 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
         resultSet.getColumnClassName(1) should be("java.lang.Integer")
         resultSet.getColumnType(1) should be(java.sql.Types.INTEGER)
         resultSet.getColumnTypeName(1) should be(KsqlType.INTEGER.name)
-        resultSet.getColumnDisplaySize(1) should be(16)
+        resultSet.getColumnDisplaySize(1) should be(8)
 
         resultSet.getColumnClassName(2) should be("java.lang.Long")
         resultSet.getColumnType(2) should be(java.sql.Types.BIGINT)
@@ -60,7 +60,7 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
         resultSet.getColumnClassName(3) should be("java.lang.Double")
         resultSet.getColumnType(3) should be(java.sql.Types.DOUBLE)
         resultSet.getColumnTypeName(3) should be(KsqlType.DOUBLE.name)
-        resultSet.getColumnDisplaySize(3) should be(16)
+        resultSet.getColumnDisplaySize(3) should be(32)
 
         resultSet.getColumnClassName(4) should be("java.lang.Boolean")
         resultSet.getColumnType(4) should be(java.sql.Types.BOOLEAN)
@@ -70,27 +70,27 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
         resultSet.getColumnClassName(5) should be("java.lang.String")
         resultSet.getColumnType(5) should be(java.sql.Types.VARCHAR)
         resultSet.getColumnTypeName(5) should be(KsqlType.STRING.name)
-        resultSet.getColumnDisplaySize(5) should be(64)
+        resultSet.getColumnDisplaySize(5) should be(128)
 
         resultSet.getColumnClassName(6) should be("java.util.Map")
         resultSet.getColumnType(6) should be(java.sql.Types.JAVA_OBJECT)
         resultSet.getColumnTypeName(6) should be(KsqlType.MAP.name)
-        resultSet.getColumnDisplaySize(6) should be(64)
+        resultSet.getColumnDisplaySize(6) should be(255)
 
         resultSet.getColumnClassName(7) should be("java.sql.Array")
         resultSet.getColumnType(7) should be(java.sql.Types.ARRAY)
         resultSet.getColumnTypeName(7) should be(KsqlType.ARRAY.name)
-        resultSet.getColumnDisplaySize(7) should be(64)
+        resultSet.getColumnDisplaySize(7) should be(255)
 
         resultSet.getColumnClassName(8) should be("java.sql.Struct")
         resultSet.getColumnType(8) should be(java.sql.Types.STRUCT)
         resultSet.getColumnTypeName(8) should be(KsqlType.STRUCT.name)
-        resultSet.getColumnDisplaySize(8) should be(64)
+        resultSet.getColumnDisplaySize(8) should be(512)
 
         resultSet.getColumnClassName(9) should be("java.lang.String")
         resultSet.getColumnType(9) should be(-999)
         resultSet.getColumnTypeName(9) should be(KsqlType.STRING.name)
-        resultSet.getColumnDisplaySize(9) should be(64)
+        resultSet.getColumnDisplaySize(9) should be(9)
 
         resultSet.isCaseSensitive(2) should be(false)
         resultSet.isCaseSensitive(5) should be(true)

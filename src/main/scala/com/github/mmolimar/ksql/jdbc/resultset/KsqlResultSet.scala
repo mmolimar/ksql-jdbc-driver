@@ -1,8 +1,8 @@
 package com.github.mmolimar.ksql.jdbc.resultset
 
-import java.io.Closeable
+import java.io.{Closeable, InputStream}
 import java.sql.{ResultSet, ResultSetMetaData}
-import java.util.{Iterator => JIterator}
+import java.util.{NoSuchElementException, Scanner, Iterator => JIterator}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
@@ -32,7 +32,9 @@ class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData, priva
 
 }
 
-private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends Closeable with JIterator[StreamedRow] {
+trait KsqlStream extends Closeable with JIterator[StreamedRow]
+
+private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends KsqlStream {
 
   override def close: Unit = stream.close
 
@@ -42,8 +44,29 @@ private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends 
 
 }
 
+private[jdbc] class KsqlInputStream(stream: InputStream) extends KsqlStream {
+  private var isClosed = false
+  private lazy val scanner = new Scanner(stream)
+
+  override def close: Unit = {
+    isClosed = true
+    scanner.close
+  }
+
+  override def hasNext: Boolean = {
+    if (isClosed) throw new IllegalStateException("Cannot call hasNext() when stream is closed.")
+    scanner.hasNextLine
+  }
+
+  override def next: StreamedRow = {
+    if (!hasNext) throw new NoSuchElementException
+    StreamedRow.row(new GenericRow(scanner.nextLine))
+  }
+
+}
+
 class StreamedResultSet(private val metadata: ResultSetMetaData,
-                        private val stream: KsqlQueryStream, private val maxRows: Long, val timeout: Long = 0)
+                        private val stream: KsqlStream, private val maxRows: Long, val timeout: Long = 0)
   extends AbstractResultSet[StreamedRow](metadata, maxRows, stream) {
 
   private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)

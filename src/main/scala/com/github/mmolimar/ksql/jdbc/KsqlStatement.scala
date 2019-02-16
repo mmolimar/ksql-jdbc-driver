@@ -1,5 +1,6 @@
 package com.github.mmolimar.ksql.jdbc
 
+import java.io.InputStream
 import java.sql.{Connection, ResultSet, SQLWarning, Statement, Types}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
@@ -63,7 +64,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     val stmt = Try(ksqlParser.getStatements(fixedSql)) match {
       case Failure(e) => throw KsqlQueryError(s"Error parsing query '$fixedSql': ${e.getMessage}.", e)
       case Success(s) if s.size() != 1 => throw KsqlQueryError("You have to execute just one query at a time. " +
-        s"Number of queries sent: ${s.size}.")
+        s"Number of queries sent: '${s.size}'.")
       case Success(s) => s.get(0)
     }
 
@@ -71,7 +72,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
       case "SELECT" =>
         ksqlClient.makeQueryRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
       case "PRINT" =>
-        ksqlClient.makeQueryRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
+        ksqlClient.makePrintTopicRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
       case _ =>
         ksqlClient.makeKsqlRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
     }
@@ -98,6 +99,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
         e.asInstanceOf[KsqlRestClient.QueryStream]
       }
       case e: KsqlEntityList => e.asInstanceOf[KsqlEntityList]
+      case e: InputStream => e.asInstanceOf[InputStream]
     }
     currentResultSet = Some(resultSet)
   }
@@ -173,19 +175,27 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
 
   private implicit def toResultSet(stream: KsqlRestClient.QueryStream)
                                   (implicit queryDesc: QueryDescription): ResultSet = {
-    def mapType(ksqlType: KsqlType) = ksqlType match {
-      case KsqlType.INTEGER => Types.INTEGER
-      case KsqlType.BIGINT => Types.BIGINT
-      case KsqlType.DOUBLE => Types.DOUBLE
-      case KsqlType.BOOLEAN => Types.BOOLEAN
-      case KsqlType.STRING => Types.VARCHAR
-      case KsqlType.MAP => Types.JAVA_OBJECT
-      case KsqlType.ARRAY => Types.ARRAY
-      case KsqlType.STRUCT => Types.STRUCT
+    def mapType(ksqlType: KsqlType): (Int, Int) = ksqlType match {
+      case KsqlType.INTEGER => (Types.INTEGER, 16)
+      case KsqlType.BIGINT => (Types.BIGINT, 32)
+      case KsqlType.DOUBLE => (Types.DOUBLE, 32)
+      case KsqlType.BOOLEAN => (Types.BOOLEAN, 8)
+      case KsqlType.STRING => (Types.VARCHAR, 128)
+      case KsqlType.MAP => (Types.JAVA_OBJECT, 255)
+      case KsqlType.ARRAY => (Types.ARRAY, 255)
+      case KsqlType.STRUCT => (Types.STRUCT, 255)
     }
 
-    val columns = queryDesc.getFields.asScala.map(f => HeaderField(f.getName, mapType(f.getSchema.getType), 0)).toList
+    val columns = queryDesc.getFields.asScala.map { f =>
+      val (mappedType, length) = mapType(f.getSchema.getType)
+      HeaderField(f.getName, mappedType, length)
+    }.toList
     new StreamedResultSet(new KsqlResultSetMetaData(columns), new KsqlQueryStream(stream), maxRows, timeout)
+  }
+
+  private implicit def toResultSet(stream: InputStream): ResultSet = {
+    new StreamedResultSet(new KsqlResultSetMetaData(KsqlEntityHeaders.printTopic),
+      new KsqlInputStream(stream), maxRows, timeout)
   }
 
   private implicit def toResultSet(list: KsqlEntityList): ResultSet = {
