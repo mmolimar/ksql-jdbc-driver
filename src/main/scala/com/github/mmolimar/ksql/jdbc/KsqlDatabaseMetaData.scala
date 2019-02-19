@@ -745,6 +745,44 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     types = Set.empty
   ).mkString(",")
 
+  override def allProceduresAreCallable: Boolean = false
+
+  override def allTablesAreSelectable: Boolean = false
+
+  override def getMaxConnections: Int = 0
+
+  override def getIdentifierQuoteString: String = " "
+
+  override def getSearchStringEscape: String = "%"
+
+  override def getExtraNameCharacters: String = "#@"
+
+  override def nullsAreSortedHigh: Boolean = false
+
+  override def nullsAreSortedLow: Boolean = false
+
+  override def nullsAreSortedAtStart: Boolean = false
+
+  override def nullsAreSortedAtEnd: Boolean = false
+
+  override def nullPlusNonNullIsNull: Boolean = true
+
+  override def usesLocalFiles: Boolean = true
+
+  override def usesLocalFilePerTable: Boolean = true
+
+  override def storesUpperCaseIdentifiers: Boolean = false
+
+  override def storesLowerCaseIdentifiers: Boolean = false
+
+  override def storesMixedCaseIdentifiers: Boolean = true
+
+  override def storesUpperCaseQuotedIdentifiers: Boolean = false
+
+  override def storesLowerCaseQuotedIdentifiers: Boolean = false
+
+  override def storesMixedCaseQuotedIdentifiers: Boolean = true
+
   override def supportsAlterTableWithAddColumn: Boolean = false
 
   override def supportsAlterTableWithDropColumn: Boolean = false
@@ -768,6 +806,52 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def supportsStoredFunctionsUsingCallSyntax: Boolean = true
 
   override def supportsStoredProcedures: Boolean = false
+
+  override def supportsMixedCaseQuotedIdentifiers: Boolean = true
+
+  override def supportsColumnAliasing: Boolean = true
+
+  override def supportsMixedCaseIdentifiers: Boolean = true
+
+  override def supportsConvert: Boolean = false
+
+  override def supportsConvert(fromType: Int, toType: Int): Boolean = false
+
+  override def supportsTableCorrelationNames: Boolean = true
+
+  override def supportsDifferentTableCorrelationNames: Boolean = true
+
+  override def supportsExpressionsInOrderBy: Boolean = true
+
+  override def supportsGroupBy: Boolean = true
+
+  override def supportsOrderByUnrelated: Boolean = false
+
+  override def supportsGroupByUnrelated: Boolean = true
+
+  override def supportsGroupByBeyondSelect: Boolean = true
+
+  override def supportsLikeEscapeClause: Boolean = true
+
+  override def supportsNonNullableColumns: Boolean = true
+
+  override def supportsMinimumSQLGrammar: Boolean = true
+
+  override def supportsCoreSQLGrammar: Boolean = false
+
+  override def supportsExtendedSQLGrammar: Boolean = false
+
+  override def supportsOuterJoins: Boolean = false
+
+  override def supportsFullOuterJoins: Boolean = false
+
+  override def supportsLimitedOuterJoins: Boolean = false
+
+  override def supportsUnion: Boolean = false
+
+  override def supportsUnionAll: Boolean = false
+
+  override def supportsTransactions: Boolean = false
 
   private def availableFunctions(author: Option[String] = None, names: Set[String] = Set.empty,
                                  types: Set[String] = Set(".*")): Set[String] = {

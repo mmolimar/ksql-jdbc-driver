@@ -17,17 +17,30 @@ import scala.collection.JavaConverters._
 class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A KsqlDatabaseMetaData" when {
-    val implementedMethods = Seq("getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
+    val implementedMethods = Seq("allProceduresAreCallable", "allTablesAreSelectable",
+      "getMaxConnections", "getIdentifierQuoteString", "getIdentifierQuoteString", "getSearchStringEscape",
+      "getExtraNameCharacters", "getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
       "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
       "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
       "getCatalogTerm", "getMaxStatements", "getMaxStatementLength", "getTableTypes", "getTables", "getTypeInfo",
       "getSchemas", "getSuperTables", "getUDTs", "getColumns", "getURL", "isReadOnly", "getSQLKeywords", "getProcedures",
       "getNumericFunctions", "getSchemaTerm", "getStringFunctions", "getSystemFunctions", "getTimeDateFunctions",
-      "getProcedureTerm", "supportsAlterTableWithAddColumn", "supportsAlterTableWithDropColumn",
+      "getProcedureTerm",
+      "nullsAreSortedHigh", "nullsAreSortedLow", "nullsAreSortedAtStart", "nullsAreSortedAtEnd", "nullPlusNonNullIsNull",
+      "usesLocalFiles", "usesLocalFilePerTable",
+      "supportsAlterTableWithAddColumn", "supportsAlterTableWithDropColumn",
       "supportsCatalogsInDataManipulation", "supportsCatalogsInTableDefinitions", "supportsCatalogsInProcedureCalls",
       "supportsMultipleResultSets", "supportsMultipleTransactions", "supportsSavepoints",
       "supportsSchemasInDataManipulation", "supportsSchemasInTableDefinitions",
-      "supportsStoredFunctionsUsingCallSyntax", "supportsStoredProcedures"
+      "supportsStoredFunctionsUsingCallSyntax", "supportsStoredProcedures", "storesUpperCaseIdentifiers",
+      "storesLowerCaseIdentifiers", "storesMixedCaseIdentifiers", "storesUpperCaseQuotedIdentifiers",
+      "storesLowerCaseQuotedIdentifiers", "storesMixedCaseQuotedIdentifiers", "supportsMixedCaseQuotedIdentifiers",
+      "supportsColumnAliasing", "supportsMixedCaseIdentifiers", "supportsConvert", "supportsTableCorrelationNames",
+      "supportsDifferentTableCorrelationNames", "supportsExpressionsInOrderBy", "supportsExtendedSQLGrammar",
+      "supportsGroupBy", "supportsOrderByUnrelated", "supportsGroupByUnrelated", "supportsGroupByBeyondSelect",
+      "supportsLikeEscapeClause", "supportsNonNullableColumns", "supportsMinimumSQLGrammar", "supportsCoreSQLGrammar",
+      "supportsExtendedSQLGrammar", "supportsOuterJoins", "supportsFullOuterJoins",
+      "supportsLimitedOuterJoins", "supportsUnion", "supportsUnionAll", "supportsTransactions"
     )
 
     val mockResponse = mock[Response]
@@ -173,6 +186,9 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         assertThrows[SQLException] {
           metadata.getSuperTables("", "test", "test")
         }
+      }
+
+      "check JDBC specs" in {
 
         metadata.getURL should be("jdbc:ksql://localhost:8080")
         metadata.getTypeInfo.getMetaData.getColumnCount should be(18)
@@ -180,6 +196,32 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         metadata.getMaxStatements should be(0)
         metadata.getMaxStatementLength should be(0)
         metadata.getProcedures(None.orNull, None.orNull, None.orNull).next should be(false)
+        metadata.getIdentifierQuoteString should be(" ")
+        metadata.getSearchStringEscape should be("%")
+        metadata.getExtraNameCharacters should be("#@")
+        metadata.getMaxConnections should be(0)
+        metadata.getIdentifierQuoteString should be(" ")
+
+        metadata.allProceduresAreCallable should be(false)
+        metadata.allTablesAreSelectable should be(false)
+
+        metadata.nullsAreSortedHigh should be(false)
+        metadata.nullsAreSortedLow should be(false)
+        metadata.nullsAreSortedAtStart should be(false)
+        metadata.nullsAreSortedAtEnd should be(false)
+
+        metadata.usesLocalFiles should be(true)
+        metadata.usesLocalFilePerTable should be(true)
+
+        metadata.nullPlusNonNullIsNull should be(true)
+
+        metadata.storesUpperCaseIdentifiers should be(false)
+        metadata.storesLowerCaseIdentifiers should be(false)
+        metadata.storesMixedCaseIdentifiers should be(true)
+        metadata.storesUpperCaseQuotedIdentifiers should be(false)
+        metadata.storesLowerCaseQuotedIdentifiers should be(false)
+        metadata.storesMixedCaseQuotedIdentifiers should be(true)
+
         metadata.supportsAlterTableWithAddColumn should be(false)
         metadata.supportsAlterTableWithDropColumn should be(false)
         metadata.supportsCatalogsInDataManipulation should be(false)
@@ -192,7 +234,30 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         metadata.supportsStoredFunctionsUsingCallSyntax should be(true)
         metadata.supportsStoredProcedures should be(false)
         metadata.supportsSavepoints should be(false)
-
+        metadata.supportsMixedCaseIdentifiers should be(true)
+        metadata.supportsMixedCaseQuotedIdentifiers should be(true)
+        metadata.supportsColumnAliasing should be(true)
+        metadata.supportsConvert should be(false)
+        metadata.supportsConvert(12, 15) should be(false)
+        metadata.supportsTableCorrelationNames should be(true)
+        metadata.supportsDifferentTableCorrelationNames should be(true)
+        metadata.supportsExpressionsInOrderBy should be(true)
+        metadata.supportsExtendedSQLGrammar should be(false)
+        metadata.supportsGroupBy should be(true)
+        metadata.supportsOrderByUnrelated should be(false)
+        metadata.supportsGroupByUnrelated should be(true)
+        metadata.supportsGroupByBeyondSelect should be(true)
+        metadata.supportsLikeEscapeClause should be(true)
+        metadata.supportsNonNullableColumns should be(true)
+        metadata.supportsMinimumSQLGrammar should be(true)
+        metadata.supportsCoreSQLGrammar should be(false)
+        metadata.supportsExtendedSQLGrammar should be(false)
+        metadata.supportsOuterJoins should be(false)
+        metadata.supportsFullOuterJoins should be(false)
+        metadata.supportsLimitedOuterJoins should be(false)
+        metadata.supportsTransactions should be(false)
+        metadata.supportsUnion should be(false)
+        metadata.supportsUnionAll should be(false)
       }
     }
   }

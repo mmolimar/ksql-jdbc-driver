@@ -1,6 +1,6 @@
 package com.github.mmolimar.ksql.jdbc
 
-import java.io.InputStream
+import java.io.{ByteArrayInputStream, InputStream}
 import java.sql.{ResultSet, SQLException, SQLFeatureNotSupportedException}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
@@ -156,6 +156,15 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         statement.getUpdateCount should be(-1)
         statement.getResultSetType should be(ResultSet.TYPE_FORWARD_ONLY)
         statement.getWarnings should be(None.orNull)
+      }
+
+      "work when printing topics" in {
+        (mockedKsqlRestClient.makePrintTopicRequest _).expects(*)
+          .returns(RestResponse.successful[InputStream](new ByteArrayInputStream("test".getBytes)))
+          .once
+        Option(statement.executeQuery("print 'test'")) should not be (None)
+        statement.getResultSet.next should be(true)
+        statement.getResultSet.getString(1) should be("test")
       }
 
       "work when executing KSQL commands" in {
