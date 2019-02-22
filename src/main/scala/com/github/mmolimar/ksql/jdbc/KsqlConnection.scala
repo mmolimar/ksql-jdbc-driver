@@ -38,6 +38,7 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
   extends Connection with WrapperNotSupported {
 
   private val ksqlClient = init
+  private var connected: Option[Boolean] = None
 
   private[jdbc] def init: KsqlRestClient = {
     val props = if (values.properties) {
@@ -53,7 +54,7 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
       case Failure(e) => throw CannotConnect(values.ksqlServer, e.getMessage)
-      case _ =>
+      case _ => connected = Some(true)
     }
   }
 
@@ -150,7 +151,10 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
 
   override def setCatalog(catalog: String): Unit = {}
 
-  override def close: Unit = ksqlClient.close
+  override def close: Unit = {
+    ksqlClient.close
+    connected = Some(false)
+  }
 
   override def getAutoCommit: Boolean = false
 
@@ -176,7 +180,7 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
 
   override def releaseSavepoint(savepoint: Savepoint): Unit = throw NotSupported("releaseSavepoint")
 
-  override def isClosed: Boolean = throw NotSupported("isClosed")
+  override def isClosed: Boolean = !connected.getOrElse(throw NotConnected(values.jdbcUrl))
 
   override def createStruct(typeName: String, attributes: scala.Array[AnyRef]): Struct =
     throw NotSupported("createStruct")
@@ -185,6 +189,6 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
 
   override def setSchema(schema: String): Unit = throw NotSupported("setSchema")
 
-  override def commit: Unit = throw NotSupported("commit")
+  override def commit: Unit = {}
 
 }

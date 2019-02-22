@@ -4,9 +4,9 @@ import java.sql.{SQLException, SQLFeatureNotSupportedException}
 
 sealed trait KsqlException {
 
-  def message: String = ""
+  def message: String
 
-  def cause: Throwable = None.orNull
+  def cause: Throwable
 
 }
 
@@ -16,6 +16,10 @@ case class InvalidUrl(url: String, override val cause: Throwable = None.orNull) 
 
 case class CannotConnect(url: String, msg: String, override val cause: Throwable = None.orNull) extends KsqlException {
   override def message = s"Cannot connect to this URL ${url}. Error message: ${msg}."
+}
+
+case class NotConnected(url: String, override val cause: Throwable = None.orNull) extends KsqlException {
+  override def message = s"Not connected to database: ${url}."
 }
 
 case class InvalidProperty(name: String, override val cause: Throwable = None.orNull) extends KsqlException {

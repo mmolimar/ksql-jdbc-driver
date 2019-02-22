@@ -71,7 +71,8 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         (mockKsqlRestClient.makeRootRequest _).expects()
           .returns(RestResponse.successful[ServerInfo](new ServerInfo("v1", "id1", "svc1")))
           .once
-        driver.connect("jdbc:ksql://localhost:9999", new Properties)
+        val connection = driver.connect("jdbc:ksql://localhost:9999", new Properties)
+        connection.isClosed should be(false)
       }
     }
 
