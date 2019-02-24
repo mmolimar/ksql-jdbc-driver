@@ -47,7 +47,7 @@ class KsqlDriver extends Driver {
 
   override def acceptsURL(url: String): Boolean = Option(url).exists(_.startsWith(KsqlDriver.ksqlPrefix))
 
-  override def jdbcCompliant(): Boolean = false
+  override def jdbcCompliant: Boolean = false
 
   override def getPropertyInfo(url: String, info: Properties): scala.Array[DriverPropertyInfo] = scala.Array.empty
 

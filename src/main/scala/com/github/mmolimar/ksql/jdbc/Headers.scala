@@ -11,9 +11,6 @@ object HeaderField {
     HeaderField(name, name.toUpperCase, jdbcType, length, -1)
   }
 
-  def apply(name: String, label: String, jdbcType: Int, length: Int): HeaderField = {
-    HeaderField(name, label, jdbcType, length, -1)
-  }
 }
 
 object DatabaseMetadataHeaders {

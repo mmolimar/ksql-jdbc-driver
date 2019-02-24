@@ -38,7 +38,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def updateNString(columnLabel: String, nString: String): Unit = throw NotSupported("updateNString")
 
-  override def clearWarnings(): Unit = throw NotSupported("clearWarnings")
+  override def clearWarnings: Unit = throw NotSupported("clearWarnings")
 
   override def updateTimestamp(columnIndex: Int, x: Timestamp): Unit = throw NotSupported("updateTimestamp")
 
@@ -70,7 +70,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getBinaryStream(columnLabel: String): InputStream = throw NotSupported("getBinaryStream")
 
-  override def beforeFirst(): Unit = throw NotSupported("beforeFirst")
+  override def beforeFirst: Unit = throw NotSupported("beforeFirst")
 
   override def updateNCharacterStream(columnIndex: Int, x: Reader, length: Long): Unit =
     throw NotSupported("updateNCharacterStream")
@@ -96,7 +96,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def updateNClob(columnLabel: String, reader: Reader): Unit = throw NotSupported("updateNClob")
 
-  override def last(): Boolean = throw NotSupported("last")
+  override def last: Boolean = throw NotSupported("last")
 
   override def isLast: Boolean = throw NotSupported("isLast")
 
@@ -138,9 +138,9 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getURL(columnLabel: String): URL = throw NotSupported("getURL")
 
-  override def updateRow(): Unit = throw NotSupported("updateRow")
+  override def updateRow: Unit = throw NotSupported("updateRow")
 
-  override def insertRow(): Unit = throw NotSupported("insertRow")
+  override def insertRow: Unit = throw NotSupported("insertRow")
 
   override def getMetaData: ResultSetMetaData = throw NotSupported("getMetaData")
 
@@ -166,9 +166,9 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getRowId(columnLabel: String): RowId = throw NotSupported("getRowId")
 
-  override def moveToInsertRow(): Unit = throw NotSupported("moveToInsertRow")
+  override def moveToInsertRow: Unit = throw NotSupported("moveToInsertRow")
 
-  override def rowInserted(): Boolean = throw NotSupported("rowInserted")
+  override def rowInserted: Boolean = throw NotSupported("rowInserted")
 
   override def getFloat(columnIndex: Int): Float = throw NotSupported("getFloat")
 
