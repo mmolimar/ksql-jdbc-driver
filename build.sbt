@@ -13,7 +13,7 @@ resolvers += "Confluent Snapshots Maven Repo" at "https://s3-us-west-2.amazonaws
 resolvers += Resolver.mavenLocal
 
 libraryDependencies += "io.confluent.ksql" % "ksql-rest-app" % "5.1.2"
-libraryDependencies += "org.apache.kafka" %% "kafka" % "2.1.0" % "test"
+libraryDependencies += "org.apache.kafka" %% "kafka" % "2.1.1" % "test"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
 libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % "test"
 libraryDependencies += "javax.ws.rs" % "javax.ws.rs-api" % "2.1.1" artifacts (Artifact("javax.ws.rs-api", "jar", "jar"))
