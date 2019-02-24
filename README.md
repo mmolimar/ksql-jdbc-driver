@@ -10,23 +10,14 @@ perform queries to Kafka and then, the engine translates those requests to Kafka
 
 ### Building from source ###
 
-First of all, the KSQL lib has to be installed into your local repo.
-
-So, cloning the KSQL repo:
-
-``git clone https://github.com/confluentinc/ksql.git && cd ksql && git checkout v5.1.0``
-
-and installing it:
-
-``mvn clean install -Dmaven.test.skip=true``
-
-Once you've done that, just clone the ksql-jdbc-driver repo and package it:
+Just clone the ksql-jdbc-driver repo and package it:
  
 ``git clone https://github.com/mmolimar/ksql-jdbc-driver.git && cd ksql-jdbc-driver``
 
 ``sbt clean package``
 
-If you want to build a fat jar containing both classes and dependencies needed, type the following:
+If you want to build a fat jar containing both classes and dependencies -for instance, to use it in a
+JDBC client such as [SQuirrel SQL](http://squirrel-sql.sourceforge.net/) or whichever-, type the following:
 
 ``sbt clean assembly``
 
@@ -64,6 +55,8 @@ where:
 * **\<propertyN>**: are the custom client properties (optionals). Available properties:
   * ``secured``: sets if the KSQL connection is secured or not. It's a boolean (``true``|``false``) and its default
   value is ``false``.
+  * ``properties``: enables to set in KSQL extra properties from the JDBC URL. It's a boolean (``true``|``false``)
+  and its default value is ``false``.
   * ``timeout``: sets the max wait time between each message when receiving them. It's a long and its default
   value is ``0`` which means that is infinite.
 
