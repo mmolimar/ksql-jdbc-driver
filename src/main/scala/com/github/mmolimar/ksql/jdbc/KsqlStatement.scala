@@ -112,11 +112,19 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
 
   private[this] var currentResultSet: Option[ResultSet] = None
   private var maxRows = 0
+  private var closed = false
 
   override def cancel: Unit = {
     currentResultSet.map(_.close)
     currentResultSet = None
   }
+
+  override def close: Unit = {
+    cancel
+    closed = true
+  }
+
+  override def isClosed: Boolean = closed
 
   override def getResultSet: ResultSet = currentResultSet.getOrElse(throw ResultSetError("Result set not initialized."))
 
@@ -125,6 +133,8 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
   override def getMaxRows: Int = maxRows
 
   private def executeKsqlRequest(sql: String): Unit = {
+    if (closed) throw AlreadyClosed("Statement already closed.")
+
     currentResultSet = None
     val fixedSql = fixSql(sql)
     val stmt = Try(ksqlParser.getStatements(fixedSql)) match {

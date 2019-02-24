@@ -34,6 +34,9 @@ case class InvalidValue(prop: String, value: String, override val cause: Throwab
   override val message = s"value '' is not valid for property: $prop."
 }
 
+case class AlreadyClosed(override val message: String = "Already closed.",
+                         override val cause: Throwable = None.orNull) extends KsqlException
+
 case class KsqlQueryError(override val message: String = "Error executing query.",
                           override val cause: Throwable = None.orNull) extends KsqlException
 

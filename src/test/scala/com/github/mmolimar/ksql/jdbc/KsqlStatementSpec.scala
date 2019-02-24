@@ -107,23 +107,6 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
           Map.empty[String, AnyRef].asJava
         )
 
-        assertThrows[SQLException] {
-          (mockedKsqlRestClient.makeQueryRequest _).expects(*)
-            .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
-            .once
-          val multipleResults = new KsqlEntityList
-          multipleResults.add(new QueryDescriptionEntity("select * from test;", queryDesc))
-          multipleResults.add(new QueryDescriptionEntity("select * from test;", queryDesc))
-          (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
-            .returns(RestResponse.successful[KsqlEntityList](multipleResults))
-            .once
-          statement.execute("select * from test")
-        }
-        assertThrows[SQLException] {
-          statement.getResultSet
-        }
-        statement.cancel
-
         val entityList = new KsqlEntityList
         entityList.add(new QueryDescriptionEntity("select * from test;", queryDesc))
 
@@ -154,6 +137,31 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         statement.getUpdateCount should be(-1)
         statement.getResultSetType should be(ResultSet.TYPE_FORWARD_ONLY)
         statement.getWarnings should be(None.orNull)
+
+        assertThrows[SQLException] {
+          (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+            .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
+            .once
+          val multipleResults = new KsqlEntityList
+          multipleResults.add(new QueryDescriptionEntity("select * from test;", queryDesc))
+          multipleResults.add(new QueryDescriptionEntity("select * from test;", queryDesc))
+          (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+            .returns(RestResponse.successful[KsqlEntityList](multipleResults))
+            .once
+          statement.execute("select * from test")
+        }
+        assertThrows[SQLException] {
+          statement.getResultSet
+        }
+        statement.cancel
+
+        statement.isClosed should be(false)
+        statement.close
+        statement.close
+        statement.isClosed should be(true)
+        assertThrows[SQLException] {
+          statement.executeQuery("select * from test;")
+        }
       }
 
       "work when printing topics" in {
