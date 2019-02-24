@@ -7,6 +7,8 @@ import java.nio.channels.ServerSocketChannel
 import java.util
 import java.util.{Properties, Random, UUID}
 
+import _root_.io.confluent.ksql.rest.client.KsqlRestClient
+import javax.ws.rs.client.Client
 import javax.ws.rs.core.Response
 import kafka.utils.Logging
 import kafka.zk.KafkaZkClient
@@ -18,8 +20,6 @@ import org.apache.kafka.common.utils.Time
 
 import scala.reflect.runtime.universe._
 import scala.reflect.{ClassTag, _}
-import _root_.io.confluent.ksql.rest.client.KsqlRestClient
-import javax.ws.rs.client.Client
 
 object TestUtils extends Logging {
 
@@ -143,7 +143,11 @@ object TestUtils extends Logging {
       }).head.newInstance(mockResponse).asInstanceOf[KsqlRestClient.QueryStream]
   }
 
-  def reflectMethods[T <: AnyRef](implementedMethods: Seq[String], implemented: Boolean,
+  def implementedMethods[T <: AnyRef](implicit ct: ClassTag[T]): Seq[String] = {
+    ct.runtimeClass.getMethods.filter(_.getDeclaringClass == ct.runtimeClass).map(_.getName)
+  }
+
+  def reflectMethods[T <: AnyRef](methods: Seq[String], implemented: Boolean,
                                   obj: T)(implicit tt: TypeTag[T], ct: ClassTag[T]): Seq[() => Any] = {
 
     val ksqlPackage = "com.github.mmolimar.ksql"
@@ -154,7 +158,7 @@ object TestUtils extends Logging {
 
     declarations.flatten
       .filter(_.overrides.nonEmpty)
-      .filter(ms => implementedMethods.contains(ms.name.toString) == implemented)
+      .filter(ms => methods.contains(ms.name.toString) == implemented)
       .map(_.asMethod)
       .filter(!_.isProtected)
       .map(m => {

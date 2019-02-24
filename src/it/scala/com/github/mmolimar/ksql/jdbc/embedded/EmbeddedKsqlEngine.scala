@@ -27,7 +27,7 @@ class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailableP
   import java.util.function.{Function => JFunction, Supplier => JSupplier}
 
   implicit def toJavaSupplier[A](f: Function0[A]) = new JSupplier[A] {
-    override def get(): A = f()
+    override def get: A = f()
   }
 
   implicit def toJavaFunction[A, B](f: Function1[A, B]) = new JFunction[A, B] {

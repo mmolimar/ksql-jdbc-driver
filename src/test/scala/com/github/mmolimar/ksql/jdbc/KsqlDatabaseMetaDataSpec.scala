@@ -17,31 +17,6 @@ import scala.collection.JavaConverters._
 class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A KsqlDatabaseMetaData" when {
-    val implementedMethods = Seq("allProceduresAreCallable", "allTablesAreSelectable",
-      "getMaxConnections", "getIdentifierQuoteString", "getIdentifierQuoteString", "getSearchStringEscape",
-      "getExtraNameCharacters", "getDatabaseProductName", "getDatabaseMajorVersion", "getDatabaseMinorVersion",
-      "getDatabaseProductVersion", "getDriverName", "getDriverVersion", "getDriverMajorVersion",
-      "getDriverMinorVersion", "getJDBCMajorVersion", "getJDBCMinorVersion", "getConnection", "getCatalogs",
-      "getCatalogTerm", "getMaxStatements", "getMaxStatementLength", "getTableTypes", "getTables", "getTypeInfo",
-      "getSchemas", "getSuperTables", "getUDTs", "getColumns", "getURL", "isReadOnly", "getSQLKeywords", "getProcedures",
-      "getNumericFunctions", "getSchemaTerm", "getStringFunctions", "getSystemFunctions", "getTimeDateFunctions",
-      "getProcedureTerm",
-      "nullsAreSortedHigh", "nullsAreSortedLow", "nullsAreSortedAtStart", "nullsAreSortedAtEnd", "nullPlusNonNullIsNull",
-      "usesLocalFiles", "usesLocalFilePerTable",
-      "supportsAlterTableWithAddColumn", "supportsAlterTableWithDropColumn",
-      "supportsCatalogsInDataManipulation", "supportsCatalogsInTableDefinitions", "supportsCatalogsInProcedureCalls",
-      "supportsMultipleResultSets", "supportsMultipleTransactions", "supportsSavepoints",
-      "supportsSchemasInDataManipulation", "supportsSchemasInTableDefinitions",
-      "supportsStoredFunctionsUsingCallSyntax", "supportsStoredProcedures", "storesUpperCaseIdentifiers",
-      "storesLowerCaseIdentifiers", "storesMixedCaseIdentifiers", "storesUpperCaseQuotedIdentifiers",
-      "storesLowerCaseQuotedIdentifiers", "storesMixedCaseQuotedIdentifiers", "supportsMixedCaseQuotedIdentifiers",
-      "supportsColumnAliasing", "supportsMixedCaseIdentifiers", "supportsConvert", "supportsTableCorrelationNames",
-      "supportsDifferentTableCorrelationNames", "supportsExpressionsInOrderBy", "supportsExtendedSQLGrammar",
-      "supportsGroupBy", "supportsOrderByUnrelated", "supportsGroupByUnrelated", "supportsGroupByBeyondSelect",
-      "supportsLikeEscapeClause", "supportsNonNullableColumns", "supportsMinimumSQLGrammar", "supportsCoreSQLGrammar",
-      "supportsExtendedSQLGrammar", "supportsOuterJoins", "supportsFullOuterJoins",
-      "supportsLimitedOuterJoins", "supportsUnion", "supportsUnionAll", "supportsTransactions"
-    )
 
     val mockResponse = mock[Response]
     val mockedKsqlRestClient = mock[MockableKsqlRestClient]
@@ -60,7 +35,8 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .anyNumberOfTimes
 
-        reflectMethods[KsqlDatabaseMetaData](implementedMethods, false, metadata)
+        val methods = implementedMethods[KsqlDatabaseMetaData]
+        reflectMethods[KsqlDatabaseMetaData](methods, false, metadata)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -71,7 +47,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
       "work if implemented" in {
         val specialMethods = Set("getTables", "getColumns", "getNumericFunctions", "getStringFunctions",
           "getSystemFunctions", "getTimeDateFunctions")
-        val methods = implementedMethods
+        val methods = implementedMethods[KsqlDatabaseMetaData]
           .filterNot(specialMethods.contains(_))
 
         reflectMethods[KsqlDatabaseMetaData](methods, true, metadata)

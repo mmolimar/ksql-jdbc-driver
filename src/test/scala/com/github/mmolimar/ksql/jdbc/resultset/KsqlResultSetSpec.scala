@@ -15,15 +15,14 @@ import scala.collection.JavaConverters._
 class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A IteratorResultSet" when {
-    val implementedMethods = Seq("next", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort",
-      "getInt", "getLong", "getFloat", "getDouble", "getMetaData", "close", "getWarnings", "wasNull")
 
     "validating specs" should {
 
       "throw not supported exception if not supported" in {
 
         val resultSet = new IteratorResultSet[String](List.empty[HeaderField], 0, Iterator.empty)
-        reflectMethods[IteratorResultSet[String]](implementedMethods, false, resultSet)
+        val methods = implementedMethods[IteratorResultSet[String]] ++ implementedMethods[AbstractResultSet[String]]
+        reflectMethods[IteratorResultSet[String]](methods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -58,9 +57,6 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
   }
 
   "A StreamedResultSet" when {
-    val implementedMethods = Seq("isLast", "isAfterLast", "isBeforeFirst", "isFirst", "next",
-      "getConcurrency", "close", "getString", "getBytes", "getByte", "getBytes", "getBoolean", "getShort", "getInt",
-      "getLong", "getFloat", "getDouble", "getMetaData", "getResultSet", "getUpdateCount", "getWarnings", "wasNull")
 
     "validating specs" should {
 
@@ -80,7 +76,8 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
       "throw not supported exception if not supported" in {
 
         val resultSet = new StreamedResultSet(resultSetMetadata, mock[KsqlQueryStream], 0)
-        reflectMethods[StreamedResultSet](implementedMethods, false, resultSet)
+        val methods = implementedMethods[StreamedResultSet] ++ implementedMethods[AbstractResultSet[StreamedRow]]
+        reflectMethods[StreamedResultSet](methods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               try {

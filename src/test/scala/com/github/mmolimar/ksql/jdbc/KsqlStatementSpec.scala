@@ -20,9 +20,6 @@ import scala.collection.JavaConverters._
 
 class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
-  val implementedMethods = Seq("execute", "executeQuery", "getResultSet", "getUpdateCount", "getResultSetType",
-    "getWarnings", "getMaxRows", "cancel", "setMaxRows")
-
   "A KsqlStatement" when {
 
     val mockResponse = mock[Response]
@@ -38,7 +35,8 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .noMoreThanOnce
 
-        reflectMethods[KsqlStatement](implementedMethods, false, statement)
+        val methods = implementedMethods[KsqlStatement]
+        reflectMethods[KsqlStatement](methods, false, statement)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -287,4 +285,22 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
       }
     }
   }
+
+  "A StatementNotSupported" when {
+
+    "validating specs" should {
+
+      "throw not supported exception if not supported" in {
+
+        val resultSet = new StatementNotSupported
+        reflectMethods[StatementNotSupported](Seq.empty, false, resultSet)
+          .foreach(method => {
+            assertThrows[SQLFeatureNotSupportedException] {
+              method()
+            }
+          })
+      }
+    }
+  }
+
 }

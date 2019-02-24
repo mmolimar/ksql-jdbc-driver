@@ -12,10 +12,6 @@ import org.scalatest.{Matchers, WordSpec}
 
 class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
-  val implementedMethods = Seq("createStatement", "getAutoCommit", "getTransactionIsolation",
-    "setClientInfo", "isReadOnly", "isClosed", "isValid", "close", "commit", "getMetaData", "getWarnings",
-    "setAutoCommit", "getCatalog", "setCatalog")
-
   "A KsqlConnection" when {
 
     "validating specs" should {
@@ -26,7 +22,8 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
       }
 
       "throw not supported exception if not supported" in {
-        reflectMethods[KsqlConnection](implementedMethods, false, ksqlConnection)
+        val methods = implementedMethods[KsqlConnection]
+        reflectMethods[KsqlConnection](methods, false, ksqlConnection)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -76,6 +73,23 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         ksqlConnection.close
         ksqlConnection.isClosed should be(true)
         ksqlConnection.commit
+      }
+    }
+  }
+
+  "A ConnectionNotSupported" when {
+
+    "validating specs" should {
+
+      "throw not supported exception if not supported" in {
+
+        val resultSet = new ConnectionNotSupported
+        reflectMethods[ConnectionNotSupported](Seq.empty, false, resultSet)
+          .foreach(method => {
+            assertThrows[SQLFeatureNotSupportedException] {
+              method()
+            }
+          })
       }
     }
   }

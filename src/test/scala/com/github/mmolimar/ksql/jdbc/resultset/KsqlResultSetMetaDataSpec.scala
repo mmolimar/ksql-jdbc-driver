@@ -10,10 +10,6 @@ import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
 class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
 
-  val implementedMethods = Seq("getColumnLabel", "getColumnName",
-    "getColumnTypeName", "getColumnClassName", "isCaseSensitive", "getColumnType",
-    "getColumnCount", "getPrecision", "getScale", "getColumnDisplaySize", "isNullable")
-
   "A KsqlResultSetMetaData" when {
 
     "validating specs" should {
@@ -33,7 +29,8 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
 
       "throw not supported exception if not supported" in {
 
-        reflectMethods[KsqlResultSetMetaData](implementedMethods, false, resultSet)
+        val methods = implementedMethods[KsqlResultSetMetaData]
+        reflectMethods[KsqlResultSetMetaData](methods, false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
