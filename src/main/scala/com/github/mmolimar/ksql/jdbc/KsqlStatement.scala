@@ -201,6 +201,8 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
 
   override def getResultSetType: Int = ResultSet.TYPE_FORWARD_ONLY
 
+  override def getResultSetHoldability: Int = ResultSet.HOLD_CURSORS_OVER_COMMIT
+
   override def setMaxRows(max: Int): Unit = if (max < 0) throw InvalidValue("maxRows", max.toString) else maxRows = max
 
   override def getWarnings: SQLWarning = None.orNull

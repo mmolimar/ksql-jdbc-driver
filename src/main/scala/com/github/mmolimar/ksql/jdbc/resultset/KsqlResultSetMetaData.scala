@@ -70,4 +70,22 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
 
   override def isNullable(column: Int): Int = ResultSetMetaData.columnNullableUnknown
 
+  override def isAutoIncrement(column: Int): Boolean = false
+
+  override def isCurrency(column: Int): Boolean = false
+
+  override def isSearchable(column: Int): Boolean = true
+
+  override def isReadOnly(column: Int): Boolean = true
+
+  override def isWritable(column: Int): Boolean = !isReadOnly(column)
+
+  override def isDefinitelyWritable(column: Int): Boolean = isWritable(column)
+
+  override def isSigned(column: Int): Boolean = getField(column).jdbcType match {
+    case Types.TINYINT | Types.SMALLINT | Types.INTEGER |
+         Types.BIGINT | Types.FLOAT | Types.DOUBLE | Types.DECIMAL => true
+    case _ => false
+  }
+
 }

@@ -89,15 +89,24 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
         resultSet.getColumnTypeName(9) should be(KsqlType.STRING.name)
         resultSet.getColumnDisplaySize(9) should be(9)
 
-        resultSet.isCaseSensitive(2) should be(false)
-        resultSet.isCaseSensitive(5) should be(true)
         resultSet.getColumnType(3) should be(java.sql.Types.DOUBLE)
         resultSet.getColumnCount should be(9)
         resultSet.getPrecision(3) should be(-1)
         resultSet.getPrecision(2) should be(0)
         resultSet.getScale(3) should be(-1)
         resultSet.getScale(4) should be(0)
+
+        resultSet.isCaseSensitive(2) should be(false)
+        resultSet.isCaseSensitive(5) should be(true)
         resultSet.isNullable(1) should be(ResultSetMetaData.columnNullableUnknown)
+        resultSet.isCurrency(5) should be(false)
+        resultSet.isAutoIncrement(5) should be(false)
+        resultSet.isSearchable(5) should be(true)
+        resultSet.isReadOnly(5) should be(true)
+        resultSet.isWritable(5) should be(false)
+        resultSet.isDefinitelyWritable(5) should be(false)
+        resultSet.isSigned(2) should be(true)
+        resultSet.isSigned(5) should be(false)
       }
     }
   }

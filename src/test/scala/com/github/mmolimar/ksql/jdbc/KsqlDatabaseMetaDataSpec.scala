@@ -1,7 +1,7 @@
 package com.github.mmolimar.ksql.jdbc
 
 import java.io.InputStream
-import java.sql.{SQLException, SQLFeatureNotSupportedException}
+import java.sql.{ResultSet, SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
@@ -134,6 +134,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         metadata.getCatalogTerm should be("TOPIC")
         metadata.getSchemaTerm should be("")
         metadata.getProcedureTerm should be("")
+        metadata.getResultSetHoldability should be(ResultSet.HOLD_CURSORS_OVER_COMMIT)
 
         val tableTypes = metadata.getTableTypes
         tableTypes.next should be(true)

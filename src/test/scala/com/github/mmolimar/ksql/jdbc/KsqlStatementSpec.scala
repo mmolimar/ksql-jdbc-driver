@@ -136,6 +136,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
 
         statement.getUpdateCount should be(-1)
         statement.getResultSetType should be(ResultSet.TYPE_FORWARD_ONLY)
+        statement.getResultSetHoldability should be(ResultSet.HOLD_CURSORS_OVER_COMMIT)
         statement.getWarnings should be(None.orNull)
 
         assertThrows[SQLException] {

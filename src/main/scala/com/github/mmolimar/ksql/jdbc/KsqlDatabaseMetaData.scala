@@ -438,6 +438,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getProcedureTerm: String = ""
 
+  override def getResultSetHoldability: Int = ResultSet.HOLD_CURSORS_OVER_COMMIT
+
   override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet =
     new IteratorResultSet(List.empty[HeaderField], 0, Iterator.empty)
 
