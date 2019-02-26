@@ -21,8 +21,8 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         driver.jdbcCompliant should be(false)
       }
       "have a major and minor version" in {
-        driver.getMinorVersion should be(3)
-        driver.getMajorVersion should be(0)
+        driver.getMinorVersion should be(0)
+        driver.getMajorVersion should be(1)
       }
       "have no properties" in {
         driver.getPropertyInfo("", new Properties).length should be(0)

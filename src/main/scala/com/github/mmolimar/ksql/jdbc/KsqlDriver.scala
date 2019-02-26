@@ -14,8 +14,8 @@ object KsqlDriver {
   val ksqlPrefix = "jdbc:ksql://"
 
   val driverName = "KSQL JDBC driver"
-  val driverMajorVersion = 0
-  val driverMinorVersion = 3
+  val driverMajorVersion = 1
+  val driverMinorVersion = 0
   val driverVersion = s"$driverMajorVersion.$driverMinorVersion"
 
   val jdbcMajorVersion = 4
@@ -23,7 +23,7 @@ object KsqlDriver {
 
   val ksqlMajorVersion = 5
   val ksqlMinorVersion = 1
-  val ksqlMicroVersion = 0
+  val ksqlMicroVersion = 2
   val ksqlVersion = s"$ksqlMajorVersion.$ksqlMinorVersion.$ksqlMicroVersion"
 
   private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]{1,5})"

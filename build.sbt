@@ -1,6 +1,6 @@
 name := "ksql-jdbc-driver"
 
-version := "0.3-SNAPSHOT"
+version := "1.0-SNAPSHOT"
 
 initialize := {
   assert(Integer.parseInt(sys.props("java.specification.version").split("\\.")(1)) >= 8, "Java 8 or above required")
