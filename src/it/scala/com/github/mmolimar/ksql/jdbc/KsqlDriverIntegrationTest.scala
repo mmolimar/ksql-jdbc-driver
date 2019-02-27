@@ -1,9 +1,10 @@
 package com.github.mmolimar.ksql.jdbc
 
-import java.sql.{Connection, DriverManager, SQLException, Types}
+import java.sql.{Connection, DriverManager, ResultSet, SQLException, Types}
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+import com.github.mmolimar.ksql.jdbc.KsqlEntityHeaders._
 import com.github.mmolimar.ksql.jdbc.embedded.{EmbeddedKafkaCluster, EmbeddedKsqlEngine, EmbeddedZookeeperServer}
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -26,15 +27,48 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
 
   "A KsqlConnection" when {
 
-    "creating a TABLE" should {
+    "managing a TABLE" should {
+
+      val maxRecords = 5
+      val table = TestUtils.randomString()
+
+      "create the table properly" in {
+        val resultSet = createTestTableOrStream(table)
+        resultSet.next should be(true)
+        resultSet.getString(commandStatusEntity(0).name) should be("TABLE")
+        resultSet.getString(commandStatusEntity(1).name) should be(table.toUpperCase)
+        resultSet.getString(commandStatusEntity(2).name) should be("CREATE")
+        resultSet.getString(commandStatusEntity(3).name) should be("SUCCESS")
+        resultSet.getString(commandStatusEntity(4).name) should be("Table created")
+        resultSet.next should be(false)
+        resultSet.close
+      }
+
+      "list the table already created" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"SHOW TABLES")
+        resultSet.next should be(true)
+        resultSet.getString(tablesListEntity(0).name) should be(table.toUpperCase)
+        resultSet.getString(tablesListEntity(1).name) should be(topic)
+        resultSet.getString(tablesListEntity(2).name) should be("JSON")
+        resultSet.getBoolean(tablesListEntity(3).name) should be(false)
+        resultSet.next should be(false)
+        resultSet.close
+      }
+
+      "be able to get the execution plan for a query in a table" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"EXPLAIN SELECT * FROM $table")
+        resultSet.next should be(true)
+        resultSet.getString(queryDescriptionEntity(1).name) should be("ROWTIME, ROWKEY, FIELD1, FIELD2, FIELD3")
+        resultSet.getString(queryDescriptionEntity(2).name) should be(table.toUpperCase)
+        resultSet.next should be(false)
+        resultSet.close
+      }
 
       "be able to query all fields in the table" in {
         var counter = 0
-        val maxRecords = 5
-        val table = TestUtils.randomString()
-        createTestTableOrStream(table)
-
-        val resultSet = ksqlConnection.createStatement.executeQuery(s"SELECT * FROM $table LIMIT $maxRecords")
+        val statement = ksqlConnection.createStatement
+        statement.setMaxRows(maxRecords)
+        val resultSet = statement.executeQuery(s"SELECT * FROM $table")
         while (resultSet.next) {
           resultSet.getLong(1) should not be (-1)
           Option(resultSet.getString(2)) should not be (None)
@@ -48,14 +82,20 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
         }
         counter should be(maxRecords)
 
+        resultSet.close
+        statement.close
+
+        val metadata = resultSet.getMetaData
+        metadata.getColumnCount should be(5)
+        metadata.getColumnName(1) should be("ROWTIME")
+        metadata.getColumnName(2) should be("ROWKEY")
+        metadata.getColumnName(3) should be("FIELD1")
+        metadata.getColumnName(4) should be("FIELD2")
+        metadata.getColumnName(5) should be("FIELD3")
       }
 
-      "be able to query one field in the table" in {
+      "be able to query one field in the table and get its metadata" in {
         var counter = 0
-        val maxRecords = 5
-        val table = TestUtils.randomString()
-        createTestTableOrStream(table)
-
         val resultSet = ksqlConnection.createStatement.executeQuery(s"SELECT FIELD3 FROM $table LIMIT $maxRecords")
         while (resultSet.next) {
           resultSet.getString(1) should be("lorem ipsum")
@@ -66,12 +106,13 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
         }
         counter should be(maxRecords)
 
+        val metadata = resultSet.getMetaData
+        metadata.getColumnCount should be(1)
+        metadata.getColumnName(1) should be("FIELD3")
+
       }
 
       "be able to get the metadata for this table" in {
-        val table = TestUtils.randomString()
-        createTestTableOrStream(table)
-
         var resultSet = ksqlConnection.getMetaData.getTables("", "", table, TableTypes.tableTypes.map(_.name).toArray)
         while (resultSet.next) {
           resultSet.getString("TABLE_NAME") should be(table.toUpperCase)
@@ -117,17 +158,73 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
           }
         }
       }
+
+      "describe the table" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"DESCRIBE $table")
+        resultSet.next should be(true)
+        resultSet.getMetaData.getColumnCount should be(sourceDescriptionEntity.size)
+        resultSet.getString(sourceDescriptionEntity(1).name) should be(table.toUpperCase)
+        resultSet.getString(sourceDescriptionEntity(2).name) should be(topic)
+        resultSet.getString(sourceDescriptionEntity(3).name) should be("TABLE")
+        resultSet.getString(sourceDescriptionEntity(4).name) should be("JSON")
+        resultSet.next should be(false)
+        resultSet.close
+      }
+
+      "drop the table" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"DROP TABLE $table")
+        resultSet.next should be(true)
+        resultSet.getString(commandStatusEntity(0).name) should be("TABLE")
+        resultSet.getString(commandStatusEntity(1).name) should be(table.toUpperCase)
+        resultSet.getString(commandStatusEntity(2).name) should be("DROP")
+        resultSet.getString(commandStatusEntity(3).name) should be("SUCCESS")
+        resultSet.getString(commandStatusEntity(4).name) should be(s"Source ${table.toUpperCase} was dropped. ")
+        resultSet.next should be(false)
+        resultSet.close
+      }
     }
 
-    "creating a STREAM" should {
+    "managing a STREAM" should {
+
+      val maxRecords = 5
+      val stream = TestUtils.randomString()
+
+      "create the stream properly" in {
+        val resultSet = createTestTableOrStream(stream, true)
+        resultSet.next should be(true)
+        resultSet.getString(commandStatusEntity(0).name) should be("STREAM")
+        resultSet.getString(commandStatusEntity(1).name) should be(stream.toUpperCase)
+        resultSet.getString(commandStatusEntity(2).name) should be("CREATE")
+        resultSet.getString(commandStatusEntity(3).name) should be("SUCCESS")
+        resultSet.getString(commandStatusEntity(4).name) should be("Stream created")
+        resultSet.next should be(false)
+        resultSet.close
+      }
+
+      "list the stream already created" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"SHOW STREAMS")
+        resultSet.next should be(true)
+        resultSet.getString(streamsListEntity(0).name) should be(stream.toUpperCase)
+        resultSet.getString(streamsListEntity(1).name) should be(topic)
+        resultSet.getString(streamsListEntity(2).name) should be("JSON")
+        resultSet.next should be(false)
+        resultSet.close
+      }
+
+      "be able to get the execution plan for a query in a stream" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"EXPLAIN SELECT * FROM $stream")
+        resultSet.next should be(true)
+        resultSet.getString(queryDescriptionEntity(1).name) should be("ROWTIME, ROWKEY, FIELD1, FIELD2, FIELD3")
+        resultSet.getString(queryDescriptionEntity(2).name) should be(stream.toUpperCase)
+        resultSet.next should be(false)
+        resultSet.close
+      }
 
       "be able to query all fields in the stream" in {
         var counter = 0
-        val maxRecords = 5
-        val stream = TestUtils.randomString()
-        createTestTableOrStream(stream, true)
-
-        val resultSet = ksqlConnection.createStatement.executeQuery(s"SELECT * FROM $stream LIMIT $maxRecords")
+        val statement = ksqlConnection.createStatement
+        statement.setMaxRows(maxRecords)
+        val resultSet = statement.executeQuery(s"SELECT * FROM $stream")
         while (resultSet.next) {
           resultSet.getLong(1) should not be (-1)
           Option(resultSet.getString(2)) should not be (None)
@@ -141,14 +238,20 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
         }
         counter should be(maxRecords)
 
+        resultSet.close
+        statement.close
+
+        val metadata = resultSet.getMetaData
+        metadata.getColumnCount should be(5)
+        metadata.getColumnName(1) should be("ROWTIME")
+        metadata.getColumnName(2) should be("ROWKEY")
+        metadata.getColumnName(3) should be("FIELD1")
+        metadata.getColumnName(4) should be("FIELD2")
+        metadata.getColumnName(5) should be("FIELD3")
       }
 
       "be able to query one field in the stream" in {
         var counter = 0
-        val maxRecords = 5
-        val stream = TestUtils.randomString()
-        createTestTableOrStream(stream, true)
-
         val resultSet = ksqlConnection.createStatement.executeQuery(s"SELECT FIELD3 FROM $stream LIMIT $maxRecords")
         while (resultSet.next) {
           resultSet.getString(1) should be("lorem ipsum")
@@ -159,12 +262,12 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
         }
         counter should be(maxRecords)
 
+        val metadata = resultSet.getMetaData
+        metadata.getColumnCount should be(1)
+        metadata.getColumnName(1) should be("FIELD3")
       }
 
       "be able to get the metadata for this stream" in {
-        val stream = TestUtils.randomString()
-        createTestTableOrStream(stream, true)
-
         var resultSet = ksqlConnection.getMetaData.getTables("", "", stream, TableTypes.tableTypes.map(_.name).toArray)
         while (resultSet.next) {
           resultSet.getString("TABLE_NAME") should be(stream.toUpperCase)
@@ -210,6 +313,46 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
           }
         }
       }
+
+      "describe the stream" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"DESCRIBE $stream")
+        resultSet.next should be(true)
+        resultSet.getMetaData.getColumnCount should be(sourceDescriptionEntity.size)
+        resultSet.getString(sourceDescriptionEntity(1).name) should be(stream.toUpperCase)
+        resultSet.getString(sourceDescriptionEntity(2).name) should be(topic)
+        resultSet.getString(sourceDescriptionEntity(3).name) should be("STREAM")
+        resultSet.getString(sourceDescriptionEntity(4).name) should be("JSON")
+        resultSet.next should be(false)
+        resultSet.close
+      }
+
+      "drop the stream" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"DROP STREAM $stream")
+        resultSet.next should be(true)
+        resultSet.getString(commandStatusEntity(0).name) should be("STREAM")
+        resultSet.getString(commandStatusEntity(1).name) should be(stream.toUpperCase)
+        resultSet.getString(commandStatusEntity(2).name) should be("DROP")
+        resultSet.getString(commandStatusEntity(3).name) should be("SUCCESS")
+        resultSet.getString(commandStatusEntity(4).name) should be(s"Source ${stream.toUpperCase} was dropped. ")
+        resultSet.next should be(false)
+        resultSet.close
+      }
+    }
+
+    "printing a Kafka topic" should {
+
+      "show the content of that topic" in {
+        val statement = ksqlConnection.createStatement
+        statement.setMaxRows(3)
+        val resultSet = statement.executeQuery(s"PRINT '$topic'")
+        resultSet.next should be(true)
+        resultSet.getString(printTopic(0).name) should be("Format:STRING")
+        resultSet.next should be(true)
+        resultSet.next should be(true)
+        resultSet.next should be(false)
+        resultSet.close
+        statement.close
+      }
     }
   }
 
@@ -229,10 +372,10 @@ class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAft
 
   }
 
-  private def createTestTableOrStream(str: String, isStream: Boolean = false) = {
-    ksqlConnection.createStatement.execute(s"CREATE ${if (isStream) "STREAM" else "TABLE"} $str " +
+  private def createTestTableOrStream(str: String, isStream: Boolean = false): ResultSet = {
+    ksqlConnection.createStatement.executeQuery(s"CREATE ${if (isStream) "STREAM" else "TABLE"} $str " +
       s"(FIELD1 INT, FIELD2 DOUBLE, FIELD3 VARCHAR) " +
-      s"WITH (KAFKA_TOPIC='$topic', VALUE_FORMAT='JSON', KEY='FIELD1');") should be(true)
+      s"WITH (KAFKA_TOPIC='$topic', VALUE_FORMAT='JSON', KEY='FIELD1');")
   }
 
   override def beforeAll = {

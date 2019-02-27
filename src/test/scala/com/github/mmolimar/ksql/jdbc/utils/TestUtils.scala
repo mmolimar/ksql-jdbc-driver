@@ -7,6 +7,9 @@ import java.nio.channels.ServerSocketChannel
 import java.util
 import java.util.{Properties, Random, UUID}
 
+import _root_.io.confluent.ksql.rest.client.KsqlRestClient
+import javax.ws.rs.client.Client
+import javax.ws.rs.core.Response
 import kafka.utils.Logging
 import kafka.zk.KafkaZkClient
 import org.apache.kafka.clients.admin.{AdminClient, AdminClientConfig}
@@ -129,7 +132,22 @@ object TestUtils extends Logging {
     }
   }
 
-  def reflectMethods[T <: AnyRef](implementedMethods: Seq[String], implemented: Boolean,
+  class MockableKsqlRestClient(client: Client) extends KsqlRestClient("http://localhost:8080")
+
+  def mockQueryStream(mockResponse: Response): KsqlRestClient.QueryStream = {
+    classOf[KsqlRestClient.QueryStream].getDeclaredConstructors
+      .filter(_.getParameterCount == 1)
+      .map(c => {
+        c.setAccessible(true)
+        c
+      }).head.newInstance(mockResponse).asInstanceOf[KsqlRestClient.QueryStream]
+  }
+
+  def implementedMethods[T <: AnyRef](implicit ct: ClassTag[T]): Seq[String] = {
+    ct.runtimeClass.getMethods.filter(_.getDeclaringClass == ct.runtimeClass).map(_.getName)
+  }
+
+  def reflectMethods[T <: AnyRef](methods: Seq[String], implemented: Boolean,
                                   obj: T)(implicit tt: TypeTag[T], ct: ClassTag[T]): Seq[() => Any] = {
 
     val ksqlPackage = "com.github.mmolimar.ksql"
@@ -140,7 +158,7 @@ object TestUtils extends Logging {
 
     declarations.flatten
       .filter(_.overrides.nonEmpty)
-      .filter(ms => implementedMethods.contains(ms.name.toString) == implemented)
+      .filter(ms => methods.contains(ms.name.toString) == implemented)
       .map(_.asMethod)
       .filter(!_.isProtected)
       .map(m => {

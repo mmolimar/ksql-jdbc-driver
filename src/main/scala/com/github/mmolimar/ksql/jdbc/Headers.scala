@@ -2,35 +2,36 @@ package com.github.mmolimar.ksql.jdbc
 
 import java.sql.Types
 
-import scala.collection.immutable
 
-
-case class HeaderField(name: String, jdbcType: Int, length: Int, index: Int) {
-  def this(name: String, jdbcType: Int, length: Int) = this(name, jdbcType, length, -1)
-}
+case class HeaderField(name: String, label: String, jdbcType: Int, length: Int, index: Int)
 
 object HeaderField {
-  def apply(name: String, jdbcType: Int, length: Int) = new HeaderField(name, jdbcType, length, -1)
+
+  def apply(name: String, jdbcType: Int, length: Int): HeaderField = {
+    HeaderField(name, name.toUpperCase, jdbcType, length, -1)
+  }
+
 }
 
-object Headers {
-  val tableTypes: Map[String, HeaderField] = Seq(new HeaderField("TABLE_TYPE", Types.VARCHAR, 0))
+object DatabaseMetadataHeaders {
 
-  val catalogs: Map[String, HeaderField] = Seq(HeaderField("TABLE_CAT", Types.VARCHAR, 0))
+  val tableTypes = List(HeaderField("TABLE_TYPE", Types.VARCHAR, 0))
 
-  val schemas: Map[String, HeaderField] = Seq(
+  val catalogs = List(HeaderField("TABLE_CAT", Types.VARCHAR, 0))
+
+  val schemas = List(
     HeaderField("TABLE_SCHEM", Types.VARCHAR, 0),
     HeaderField("TABLE_CATALOG", Types.VARCHAR, 0)
   )
 
-  val superTables: Map[String, HeaderField] = Seq(
+  val superTables = List(
     HeaderField("TABLE_CAT", Types.VARCHAR, 0),
     HeaderField("TABLE_SCHEM", Types.VARCHAR, 0),
     HeaderField("TABLE_NAME", Types.VARCHAR, 255),
     HeaderField("SUPERTABLE_NAME", Types.VARCHAR, 0)
   )
 
-  val tables: Map[String, HeaderField] = Seq(
+  val tables = List(
     HeaderField("TABLE_CAT", java.sql.Types.VARCHAR, 0),
     HeaderField("TABLE_SCHEM", java.sql.Types.VARCHAR, 0),
     HeaderField("TABLE_NAME", java.sql.Types.VARCHAR, 255),
@@ -43,7 +44,7 @@ object Headers {
     HeaderField("REF_GENERATION", java.sql.Types.VARCHAR, 0)
   )
 
-  val columns: Map[String, HeaderField] = Seq(
+  val columns = List(
     HeaderField("TABLE_CAT", Types.VARCHAR, 0),
     HeaderField("TABLE_SCHEM", Types.VARCHAR, 0),
     HeaderField("TABLE_NAME", Types.VARCHAR, 255),
@@ -70,8 +71,41 @@ object Headers {
     HeaderField("IS_GENERATEDCOLUMN", Types.VARCHAR, 3)
   )
 
+  val procedures = List(
+    HeaderField("PROCEDURE_CAT", Types.VARCHAR, 255),
+    HeaderField("PROCEDURE_SCHEM", Types.VARCHAR, 255),
+    HeaderField("PROCEDURE_NAME", Types.VARCHAR, 255),
+    HeaderField("reserved1", Types.VARCHAR, 0),
+    HeaderField("reserved2", Types.VARCHAR, 0),
+    HeaderField("reserved3", Types.VARCHAR, 0),
+    HeaderField("REMARKS", Types.VARCHAR, 255),
+    HeaderField("PROCEDURE_TYPE", Types.SMALLINT, 6),
+    HeaderField("SPECIFIC_NAME", Types.VARCHAR, 255)
+  )
+
+  val typeInfo = List(
+    HeaderField("TYPE_NAME", Types.VARCHAR, 32),
+    HeaderField("DATA_TYPE", Types.INTEGER, 5),
+    HeaderField("PRECISION", Types.INTEGER, 10),
+    HeaderField("LITERAL_PREFIX", Types.VARCHAR, 4),
+    HeaderField("LITERAL_SUFFIX", Types.VARCHAR, 4),
+    HeaderField("CREATE_PARAMS", Types.VARCHAR, 32),
+    HeaderField("NULLABLE", Types.SMALLINT, 5),
+    HeaderField("CASE_SENSITIVE", Types.BOOLEAN, 3),
+    HeaderField("SEARCHABLE", Types.SMALLINT, 3),
+    HeaderField("UNSIGNED_ATTRIBUTE", Types.BOOLEAN, 3),
+    HeaderField("FIXED_PREC_SCALE", Types.BOOLEAN, 3),
+    HeaderField("AUTO_INCREMENT", Types.BOOLEAN, 3),
+    HeaderField("LOCAL_TYPE_NAME", Types.VARCHAR, 32),
+    HeaderField("MINIMUM_SCALE", Types.SMALLINT, 5),
+    HeaderField("MAXIMUM_SCALE", Types.SMALLINT, 5),
+    HeaderField("SQL_DATA_TYPE", Types.INTEGER, 10),
+    HeaderField("SQL_DATETIME_SUB", Types.INTEGER, 10),
+    HeaderField("NUM_PREC_RADIX", Types.INTEGER, 10)
+  )
+
   def mapDataType(dataType: String): Int = dataType match {
-    case "BOOL" | "BOOLEAN" => Types.INTEGER
+    case "BOOL" | "BOOLEAN" => Types.BOOLEAN
     case "INT" | "INTEGER" => Types.INTEGER
     case "LONG" | "BIGINT" => Types.BIGINT
     case "DOUBLE" => Types.DOUBLE
@@ -81,24 +115,112 @@ object Headers {
     case _ => Types.OTHER
   }
 
-  private implicit def toMap(headers: Seq[HeaderField]): Map[String, HeaderField] = {
-    headers.zipWithIndex.map { case (header, index) => {
-      (header.name, HeaderField(header.name, header.jdbcType, header.length, index + 1))
-    }
-    }.toCaseInsensitiveMap
-  }
+}
 
-  private implicit class ToTreeMap[+A](tuples: TraversableOnce[A]) {
+object KsqlEntityHeaders {
 
-    def toCaseInsensitiveMap[U](implicit ev: A <:< (String, U)): immutable.Map[String, U] = {
-      val b = immutable.TreeMap.newBuilder[String, U](new Ordering[String] {
-        def compare(x: String, y: String): Int = String.CASE_INSENSITIVE_ORDER.compare(x.toString, y.toString)
-      })
-      for (x <- tuples)
-        b += x
+  val commandStatusEntity = List(
+    HeaderField("COMMAND_STATUS_ID_TYPE", Types.VARCHAR, 16),
+    HeaderField("COMMAND_STATUS_ID_ENTITY", Types.VARCHAR, 32),
+    HeaderField("COMMAND_STATUS_ID_ACTION", Types.VARCHAR, 16),
+    HeaderField("COMMAND_STATUS_STATUS", Types.VARCHAR, 16),
+    HeaderField("COMMAND_STATUS_MESSAGE", Types.VARCHAR, 128)
+  )
 
-      b.result()
-    }
-  }
+  val executionPlanEntity = List(
+    HeaderField("EXECUTION_PLAN", Types.VARCHAR, 255)
+  )
+
+  val functionDescriptionListEntity = List(
+    HeaderField("FUNCTION_DESCRIPTION_AUTHOR", Types.VARCHAR, 32),
+    HeaderField("FUNCTION_DESCRIPTION_DESCRIPTION", Types.VARCHAR, 64),
+    HeaderField("FUNCTION_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_PATH", Types.VARCHAR, 64),
+    HeaderField("FUNCTION_DESCRIPTION_VERSION", Types.VARCHAR, 8),
+    HeaderField("FUNCTION_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_FN_DESC", Types.VARCHAR, 128),
+    HeaderField("FUNCTION_DESCRIPTION_FN_RETURN_TYPE", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_FN_ARGS", Types.VARCHAR, 128)
+  )
+
+  val functionNameListEntity = List(
+    HeaderField("FUNCTION_NAME_FN_NAME", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_NAME_FN_TYPE", Types.VARCHAR, 16)
+  )
+
+  val kafkaTopicsListEntity = List(
+    HeaderField("KAFKA_TOPIC_NAME", Types.VARCHAR, 16),
+    HeaderField("KAFKA_TOPIC_CONSUMER_COUNT", Types.INTEGER, 16),
+    HeaderField("KAFKA_TOPIC_CONSUMER_GROUP_COUNT", Types.INTEGER, 16),
+    HeaderField("KAFKA_TOPIC_REGISTERED", Types.BOOLEAN, 5),
+    HeaderField("KAFKA_TOPIC_REPLICA_INFO", Types.VARCHAR, 32)
+  )
+
+  val ksqlTopicsListEntity = List(
+    HeaderField("KSQL_TOPIC_NAME", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_KAFKA_TOPIC", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_FORMAT", Types.VARCHAR, 16)
+  )
+
+  val propertiesListEntity = List(
+    HeaderField("PROPERTY_NAME", Types.VARCHAR, 16),
+    HeaderField("PROPERTY_VALUE", Types.VARCHAR, 32)
+  )
+
+  val queriesEntity = List(
+    HeaderField("QUERY_ID", Types.VARCHAR, 16),
+    HeaderField("QUERY_STRING", Types.VARCHAR, 64),
+    HeaderField("QUERY_SINKS", Types.VARCHAR, 32)
+  )
+
+  val queryDescriptionEntity = List(
+    HeaderField("QUERY_DESCRIPTION_ID", Types.VARCHAR, 16),
+    HeaderField("QUERY_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
+    HeaderField("QUERY_DESCRIPTION_SOURCES", Types.VARCHAR, 32),
+    HeaderField("QUERY_DESCRIPTION_SINKS", Types.VARCHAR, 32),
+    HeaderField("QUERY_DESCRIPTION_TOPOLOGY", Types.VARCHAR, 255),
+    HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 255)
+  )
+
+  val queryDescriptionEntityList = queryDescriptionEntity
+
+  val sourceDescriptionEntity = List(
+    HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TOPIC", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_PARTITIONS", Types.INTEGER, 16),
+    HeaderField("SOURCE_DESCRIPTION_STATISTICS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_ERROR_STATS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
+  )
+
+  val sourceDescriptionEntityList = sourceDescriptionEntity
+
+  val streamsListEntity = List(
+    HeaderField("STREAM_NAME", Types.VARCHAR, 16),
+    HeaderField("STREAM_TOPIC", Types.VARCHAR, 16),
+    HeaderField("STREAM_FORMAT", Types.VARCHAR, 16)
+  )
+
+  val tablesListEntity = List(
+    HeaderField("TABLE_NAME", Types.VARCHAR, 16),
+    HeaderField("TABLE_TOPIC", Types.VARCHAR, 16),
+    HeaderField("TABLE_FORMAT", Types.VARCHAR, 16),
+    HeaderField("TABLE_WINDOWS", Types.BOOLEAN, 5)
+  )
+
+  val topicDescriptionEntity = List(
+    HeaderField("TOPIC_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("TOPIC_DESCRIPTION_KAFKA_TOPIC", Types.VARCHAR, 16),
+    HeaderField("TOPIC_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
+    HeaderField("TOPIC_DESCRIPTION_SCHEMA_STRING", Types.BOOLEAN, 64)
+  )
+
+  val printTopic = List(
+    HeaderField("PRINT_TOPIC", Types.VARCHAR, 255)
+  )
 
 }

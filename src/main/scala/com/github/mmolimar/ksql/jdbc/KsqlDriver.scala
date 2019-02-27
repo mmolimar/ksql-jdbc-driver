@@ -10,15 +10,23 @@ import scala.util.Try
 
 object KsqlDriver {
 
-  val driverName = "KSQL JDBC"
-  val version = "0.1-SNAPSHOT"
+  val ksqlName = "KSQL"
   val ksqlPrefix = "jdbc:ksql://"
-  val majorVersion = 1
-  val minorVersion = 0
+
+  val driverName = "KSQL JDBC driver"
+  val driverMajorVersion = 1
+  val driverMinorVersion = 0
+  val driverVersion = s"$driverMajorVersion.$driverMinorVersion"
+
   val jdbcMajorVersion = 4
   val jdbcMinorVersion = 1
 
-  private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]+)"
+  val ksqlMajorVersion = 5
+  val ksqlMinorVersion = 1
+  val ksqlMicroVersion = 2
+  val ksqlVersion = s"$ksqlMajorVersion.$ksqlMinorVersion.$ksqlMicroVersion"
+
+  private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]{1,5})"
 
   private val ksqlPropsRegex = "(\\?([A-Za-z0-9._-]+=[A-Za-z0-9._-]+(&[A-Za-z0-9._-]+=[A-Za-z0-9._-]+)*)){0,1}"
 
@@ -39,21 +47,25 @@ class KsqlDriver extends Driver {
 
   override def acceptsURL(url: String): Boolean = Option(url).exists(_.startsWith(KsqlDriver.ksqlPrefix))
 
-  override def jdbcCompliant(): Boolean = false
+  override def jdbcCompliant: Boolean = false
 
   override def getPropertyInfo(url: String, info: Properties): scala.Array[DriverPropertyInfo] = scala.Array.empty
 
-  override def getMinorVersion: Int = KsqlDriver.minorVersion
+  override def getMinorVersion: Int = KsqlDriver.driverMinorVersion
 
-  override def getMajorVersion: Int = KsqlDriver.majorVersion
+  override def getMajorVersion: Int = KsqlDriver.driverMajorVersion
 
-  override def getParentLogger: Logger = throw NotSupported("getParentLogger method not supported")
+  override def getParentLogger: Logger = throw NotSupported("getParentLogger")
 
   override def connect(url: String, properties: Properties): Connection = {
     if (!acceptsURL(url)) throw InvalidUrl(url)
 
-    val connection = new KsqlConnection(KsqlDriver.parseUrl(url), properties)
+    val connection = buildConnection(KsqlDriver.parseUrl(url), properties)
     connection.validate
     connection
+  }
+
+  private[jdbc] def buildConnection(values: KsqlConnectionValues, properties: Properties): KsqlConnection = {
+    new KsqlConnection(values, properties)
   }
 }
