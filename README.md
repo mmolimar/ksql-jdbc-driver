@@ -46,7 +46,7 @@ or
 
 ### Connection URL
 
-The URL has the form ``jdbc:ksql://<ksql-engine>:<port>[?<property1>=<value>,<property2>=<value>...]``
+The URL has the form ``jdbc:ksql://<ksql-engine>:<port>[?<property1>=<value>&<property2>=<value>...]``
 
 where:
 
