@@ -4,14 +4,18 @@ import java.io.{ByteArrayInputStream, InputStream}
 import java.sql.{ResultSet, SQLException, SQLFeatureNotSupportedException}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
-import io.confluent.ksql.metastore.{KsqlStream, KsqlTopic}
+import io.confluent.ksql.metastore.SerdeFactory
+import io.confluent.ksql.metastore.model.{KeyField, KsqlStream, KsqlTopic}
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
 import io.confluent.ksql.rest.entity.{ExecutionPlan, KafkaTopicsList, QueryDescriptionEntity, QueryDescriptionList, _}
-import io.confluent.ksql.serde.DataSource.DataSourceSerDe
-import io.confluent.ksql.serde.json.KsqlJsonTopicSerDe
+import io.confluent.ksql.rest.server.computation.CommandId
+import io.confluent.ksql.schema.ksql.KsqlSchema
+import io.confluent.ksql.serde.Format
+import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy
 import javax.ws.rs.core.Response
-import org.apache.kafka.connect.data.SchemaBuilder
+import org.apache.kafka.common.serialization.{Serde, Serdes}
+import org.apache.kafka.connect.data.{Schema, SchemaBuilder}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -31,12 +35,12 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
 
       "throw not supported exception if not supported" in {
 
-        (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+        (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .noMoreThanOnce
 
         val methods = implementedMethods[KsqlStatement]
-        reflectMethods[KsqlStatement](methods, false, statement)
+        reflectMethods[KsqlStatement](methods = methods, implemented = false, obj = statement)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -60,27 +64,27 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         }
 
         assertThrows[SQLException] {
-          (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+          (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
             .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error")))
             .once
           statement.execute("select * from test")
         }
 
         assertThrows[SQLException] {
-          (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+          (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
             .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
             .once
-          (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+          (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
             .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error")))
             .once
           statement.execute("select * from test")
         }
 
         assertThrows[SQLException] {
-          (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+          (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
             .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
             .once
-          (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+          (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
             .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
             .once
           statement.execute("select * from test")
@@ -110,21 +114,21 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         val entityList = new KsqlEntityList
         entityList.add(new QueryDescriptionEntity("select * from test;", queryDesc))
 
-        (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+        (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .once
-        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](entityList))
           .once
         statement.execute("select * from test") should be(true)
 
-        (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+        (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .once
-        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](entityList))
           .once
-        Option(statement.executeQuery("select * from test;")) should not be (None)
+        Option(statement.executeQuery("select * from test;")) should not be None
 
         statement.getMaxRows should be(0)
         statement.getResultSet shouldNot be(None.orNull)
@@ -140,13 +144,13 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         statement.getWarnings should be(None.orNull)
 
         assertThrows[SQLException] {
-          (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+          (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
             .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
             .once
           val multipleResults = new KsqlEntityList
           multipleResults.add(new QueryDescriptionEntity("select * from test;", queryDesc))
           multipleResults.add(new QueryDescriptionEntity("select * from test;", queryDesc))
-          (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+          (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
             .returns(RestResponse.successful[KsqlEntityList](multipleResults))
             .once
           statement.execute("select * from test")
@@ -154,11 +158,11 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         assertThrows[SQLException] {
           statement.getResultSet
         }
-        statement.cancel
+        statement.cancel()
 
         statement.isClosed should be(false)
-        statement.close
-        statement.close
+        statement.close()
+        statement.close()
         statement.isClosed should be(true)
         assertThrows[SQLException] {
           statement.executeQuery("select * from test;")
@@ -166,10 +170,10 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
       }
 
       "work when printing topics" in {
-        (mockedKsqlRestClient.makePrintTopicRequest _).expects(*)
+        (mockedKsqlRestClient.makePrintTopicRequest _).expects(*, *)
           .returns(RestResponse.successful[InputStream](new ByteArrayInputStream("test".getBytes)))
           .once
-        Option(statement.executeQuery("print 'test'")) should not be (None)
+        Option(statement.executeQuery("print 'test'")) should not be None
         statement.getResultSet.next should be(true)
         statement.getResultSet.getString(1) should be("test")
       }
@@ -180,24 +184,24 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         def validateCommand(entity: KsqlEntity, headers: List[HeaderField]): Unit = {
           val entityList = new KsqlEntityList
           entityList.add(entity)
-          (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+          (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
             .returns(RestResponse.successful[KsqlEntityList](entityList))
             .once
           statement.execute(entity.getStatementText) should be(true)
           statement.getResultSet.getMetaData.getColumnCount should be(headers.size)
-          headers.zipWithIndex.map { case (c, index) => {
+          headers.zipWithIndex.map { case (c, index) =>
             statement.getResultSet.getMetaData.getColumnName(index + 1) should be(c.name)
             statement.getResultSet.getMetaData.getColumnLabel(index + 1).toUpperCase should be(c.name)
           }
-          }
         }
 
-        val commandStatus = new CommandStatusEntity("REGISTER TOPIC TEST", "topic/1/create", "SUCCESS", "Success Message")
+        val commandStatus = new CommandStatusEntity("REGISTER TOPIC TEST", CommandId.fromString("topic/1/create"),
+          new CommandStatus(CommandStatus.Status.SUCCESS, "Success Message"), null)
         val executionPlan = new ExecutionPlan("DESCRIBE test")
         val functionDescriptionList = new FunctionDescriptionList("DESCRIBE FUNCTION test;",
           "TEST", "Description", "author", "version", "path",
           List(
-            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description")
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description", false)).asJava, "BIGINT", "Description")
           ).asJava,
           FunctionType.scalar
         )
@@ -211,7 +215,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         )
         val ksqlTopicsList = new KsqlTopicsList(
           "SHOW TOPICS;",
-          List(new KsqlTopicInfo("ksqltopic", "kafkatopic", DataSourceSerDe.JSON)).asJava
+          List(new KsqlTopicInfo("ksqltopic", "kafkatopic", Format.JSON)).asJava
         )
         val propertiesList = new PropertiesList(
           "list properties;",
@@ -250,15 +254,22 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
           "EXPLAIN select * from test;",
           List(queryDescription.getQueryDescription).asJava
         )
+        val schema = SchemaBuilder
+          .struct
+          .field("key", Schema.OPTIONAL_INT64_SCHEMA)
+          .build()
         val sourceDescEntity = new SourceDescriptionEntity(
           "DESCRIBE TEST;",
           new SourceDescription(
             new KsqlStream("sqlExpression",
               "datasource",
-              SchemaBuilder.struct,
-              SchemaBuilder.struct.field("key"),
+              KsqlSchema.of(schema),
+              KeyField.of("key", schema.field("key")),
               new LongColumnTimestampExtractionPolicy("timestamp"),
-              new KsqlTopic("input", "input", new KsqlJsonTopicSerDe)),
+              new KsqlTopic("input", "input", new KsqlJsonSerdeFactory, true),
+              new SerdeFactory[String] {
+                override def create(): Serde[String] = Serdes.String()
+              }),
             true,
             "JSON",
             List.empty.asJava,
@@ -302,7 +313,7 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
       "throw not supported exception if not supported" in {
 
         val resultSet = new StatementNotSupported
-        reflectMethods[StatementNotSupported](Seq.empty, false, resultSet)
+        reflectMethods[StatementNotSupported](methods = Seq.empty, implemented = false, obj = resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()

@@ -31,12 +31,12 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
 
       "throw not supported exception if not supported" in {
         (mockResponse.getEntity _).expects.returns(mock[InputStream]).once
-        (mockedKsqlRestClient.makeQueryRequest _).expects(*)
+        (mockedKsqlRestClient.makeQueryRequest _).expects(*, *)
           .returns(RestResponse.successful[KsqlRestClient.QueryStream](mockQueryStream(mockResponse)))
           .anyNumberOfTimes
 
         val methods = implementedMethods[KsqlDatabaseMetaData]
-        reflectMethods[KsqlDatabaseMetaData](methods, false, metadata)
+        reflectMethods[KsqlDatabaseMetaData](methods = methods, implemented = false, obj = metadata)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -50,7 +50,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         val methods = implementedMethods[KsqlDatabaseMetaData]
           .filterNot(specialMethods.contains(_))
 
-        reflectMethods[KsqlDatabaseMetaData](methods, true, metadata)
+        reflectMethods[KsqlDatabaseMetaData](methods = methods, implemented = true, obj = metadata)
           .foreach(method => {
             method()
           })
@@ -59,20 +59,20 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
           metadata.getTables("", "", "", Array[String]("test"))
         }
 
-        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
           .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "error message", Collections.emptyList[String])))
           .once
         assertThrows[SQLException] {
           metadata.getTables("", "", "", Array[String](TableTypes.TABLE.name))
         }
 
-        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
           .twice
         metadata.getTables("", "", "[a-z]*",
           Array[String](TableTypes.TABLE.name, TableTypes.STREAM.name)).next should be(false)
 
-        (mockedKsqlRestClient.makeKsqlRequest _).expects(*)
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
           .twice
         metadata.getColumns("", "", "", "").next should be(false)
@@ -97,15 +97,15 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         val descFn1 = new FunctionDescriptionList("DESCRIBE FUNCTION testfn;",
           "TESTFN", "Description", "Confluent", "version", "path",
           List(
-            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description"),
-            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "STRING", "Description")
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description", false)).asJava, "BIGINT", "Description"),
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description", false)).asJava, "STRING", "Description")
           ).asJava,
           FunctionType.scalar
         )
         val descFn2 = new FunctionDescriptionList("DESCRIBE FUNCTION testdatefn;",
           "TESTDATEFN", "Description", "Unknown", "version", "path",
           List(
-            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description")).asJava, "BIGINT", "Description")
+            new FunctionInfo(List(new ArgumentInfo("arg1", "INT", "Description", false)).asJava, "BIGINT", "Description")
           ).asJava,
           FunctionType.scalar
         )
@@ -114,13 +114,13 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         val entityDescribeFn2 = new KsqlEntityList
         entityDescribeFn2.add(descFn2)
 
-        (mockedKsqlRestClient.makeKsqlRequest _).expects("LIST FUNCTIONS;")
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects("LIST FUNCTIONS;")
           .returns(RestResponse.successful[KsqlEntityList](entityListFn))
           .repeat(4)
-        (mockedKsqlRestClient.makeKsqlRequest _).expects("DESCRIBE FUNCTION TESTFN;")
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects("DESCRIBE FUNCTION TESTFN;")
           .returns(RestResponse.successful[KsqlEntityList](entityDescribeFn1))
           .repeat(4)
-        (mockedKsqlRestClient.makeKsqlRequest _).expects("DESCRIBE FUNCTION TESTDATEFN;")
+        (mockedKsqlRestClient.makeKsqlRequest(_: String)).expects("DESCRIBE FUNCTION TESTDATEFN;")
           .returns(RestResponse.successful[KsqlEntityList](entityDescribeFn2))
           .repeat(4)
 
@@ -129,7 +129,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
         metadata.getSystemFunctions should be("TESTFN")
         metadata.getTimeDateFunctions should be("TESTDATEFN")
 
-        Option(metadata.getConnection) should not be (None)
+        Option(metadata.getConnection) should not be None
         metadata.getCatalogs.next should be(false)
         metadata.getCatalogTerm should be("TOPIC")
         metadata.getSchemaTerm should be("")
@@ -246,7 +246,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
       "throw not supported exception if not supported" in {
 
         val metadata = new DatabaseMetaDataNotSupported
-        reflectMethods[DatabaseMetaDataNotSupported](Seq.empty, false, metadata)
+        reflectMethods[DatabaseMetaDataNotSupported](methods = Seq.empty, implemented = false, obj = metadata)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
