@@ -12,8 +12,8 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
 
   private val fieldByIndex: Map[Int, HeaderField] = columns
 
-  private def getField(index: Int): HeaderField = fieldByIndex.get(index)
-    .getOrElse(throw InvalidColumn(s"Column with index '$index' does not exist."))
+  private def getField(index: Int): HeaderField = fieldByIndex.getOrElse(index,
+    throw InvalidColumn(s"Column with index '$index' does not exist."))
 
   override def getColumnClassName(column: Int): String = {
     getField(column).jdbcType match {

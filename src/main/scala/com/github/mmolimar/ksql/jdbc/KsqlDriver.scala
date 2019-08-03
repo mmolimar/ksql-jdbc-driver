@@ -61,7 +61,7 @@ class KsqlDriver extends Driver {
     if (!acceptsURL(url)) throw InvalidUrl(url)
 
     val connection = buildConnection(KsqlDriver.parseUrl(url), properties)
-    connection.validate
+    connection.validate()
     connection
   }
 

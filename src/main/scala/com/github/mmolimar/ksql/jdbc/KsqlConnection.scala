@@ -36,7 +36,7 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
 
 class ConnectionNotSupported extends Connection with WrapperNotSupported {
 
-  override def commit: Unit = throw NotSupported("commit")
+  override def commit(): Unit = throw NotSupported("commit")
 
   override def getHoldability: Int = throw NotSupported("getHoldability")
 
@@ -112,15 +112,15 @@ class ConnectionNotSupported extends Connection with WrapperNotSupported {
   override def createArrayOf(typeName: String, elements: scala.Array[AnyRef]): Array =
     throw NotSupported("createArrayOf")
 
-  override def setSavepoint: Savepoint = throw NotSupported("setSavepoint")
+  override def setSavepoint(): Savepoint = throw NotSupported("setSavepoint")
 
   override def setSavepoint(name: String): Savepoint = throw NotSupported("setSavepoint")
 
-  override def close: Unit = throw NotSupported("close")
+  override def close(): Unit = throw NotSupported("close")
 
   override def createNClob: NClob = throw NotSupported("createNClob")
 
-  override def rollback: Unit = throw NotSupported("rollback")
+  override def rollback(): Unit = throw NotSupported("rollback")
 
   override def rollback(savepoint: Savepoint): Unit = throw NotSupported("rollback")
 
@@ -132,7 +132,7 @@ class ConnectionNotSupported extends Connection with WrapperNotSupported {
 
   override def getAutoCommit: Boolean = throw NotSupported("getAutoCommit")
 
-  override def clearWarnings: Unit = throw NotSupported("clearWarnings")
+  override def clearWarnings(): Unit = throw NotSupported("clearWarnings")
 
   override def getSchema: String = throw NotSupported("getSchema")
 
@@ -159,15 +159,17 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
   private var connected: Option[Boolean] = None
 
   private[jdbc] def init: KsqlRestClient = {
-    val props = if (values.properties) {
-      properties.asScala.toMap[String, AnyRef].asJava
+    val (localProps, clientProps) = if (values.properties) {
+      val local = properties.asScala.toMap[String, AnyRef].filterNot(_._1.toLowerCase.startsWith("ssl.")).asJava
+      val client = properties.asScala.toMap[String, String].filter(_._1.toLowerCase.startsWith("ssl.")).asJava
+      (local, client)
     } else {
-      Collections.emptyMap[String, AnyRef]
+      (Collections.emptyMap[String, AnyRef], Collections.emptyMap[String, String])
     }
-    new KsqlRestClient(values.ksqlUrl, props)
+    new KsqlRestClient(values.ksqlUrl, localProps, clientProps)
   }
 
-  private[jdbc] def validate: Unit = {
+  private[jdbc] def validate(): Unit = {
     Try(ksqlClient.makeRootRequest) match {
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
@@ -217,8 +219,8 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
 
   override def setCatalog(catalog: String): Unit = {}
 
-  override def close: Unit = {
-    ksqlClient.close
+  override def close(): Unit = {
+    ksqlClient.close()
     connected = Some(false)
   }
 
@@ -230,6 +232,6 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
 
   override def getWarnings: SQLWarning = None.orNull
 
-  override def commit: Unit = {}
+  override def commit(): Unit = {}
 
 }

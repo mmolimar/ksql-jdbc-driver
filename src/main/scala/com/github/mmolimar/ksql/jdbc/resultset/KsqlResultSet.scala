@@ -28,7 +28,7 @@ class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData, priva
 
   override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(Seq.empty).size)
 
-  override protected def closeInherit: Unit = {}
+  override protected def closeInherit(): Unit = {}
 
 }
 
@@ -36,7 +36,7 @@ trait KsqlStream extends Closeable with JIterator[StreamedRow]
 
 private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends KsqlStream {
 
-  override def close: Unit = stream.close
+  override def close(): Unit = stream.close()
 
   override def hasNext: Boolean = stream.hasNext
 
@@ -48,9 +48,9 @@ private[jdbc] class KsqlInputStream(stream: InputStream) extends KsqlStream {
   private var isClosed = false
   private lazy val scanner = new Scanner(stream)
 
-  override def close: Unit = {
+  override def close(): Unit = {
     isClosed = true
-    scanner.close
+    scanner.close()
   }
 
   override def hasNext: Boolean = {
@@ -65,8 +65,8 @@ private[jdbc] class KsqlInputStream(stream: InputStream) extends KsqlStream {
 
 }
 
-class StreamedResultSet(private val metadata: ResultSetMetaData,
-                        private val stream: KsqlStream, private val maxRows: Long, val timeout: Long = 0)
+class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
+                        private[jdbc] val stream: KsqlStream, private[resultset] val maxRows: Long, val timeout: Long = 0)
   extends AbstractResultSet[StreamedRow](metadata, maxRows, stream) {
 
   private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
@@ -74,15 +74,15 @@ class StreamedResultSet(private val metadata: ResultSetMetaData,
   private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
 
   protected override def nextResult: Boolean = {
-    def hasNext = stream.hasNext match {
-      case true =>
-        stream.next match {
-          case record if Option(record.getRow) == None => false
-          case record =>
-            currentRow = Some(record)
-            true
-        }
-      case false => false
+    def hasNext = if (stream.hasNext) {
+      stream.next match {
+        case record if Option(record.getRow).isEmpty => false
+        case record =>
+          currentRow = Some(record)
+          true
+      }
+    } else {
+      false
     }
 
     Try(Await.result(Future(hasNext), waitDuration)) match {
@@ -92,7 +92,7 @@ class StreamedResultSet(private val metadata: ResultSetMetaData,
     }
   }
 
-  override protected def closeInherit: Unit = stream.close
+  override protected def closeInherit(): Unit = stream.close()
 
   override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
 
