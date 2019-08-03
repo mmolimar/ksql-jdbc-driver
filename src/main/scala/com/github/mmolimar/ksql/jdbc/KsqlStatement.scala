@@ -171,8 +171,9 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           val response = ksqlClient.makeKsqlRequest(s"EXPLAIN $fixedSql")
           if (response.isErroneous) {
             import scala.collection.JavaConverters._
+            val stacktrace = response.getErrorMessage.getStackTrace.asScala.mkString("\n").trim
             throw KsqlQueryError(s"Error getting metadata for query: '$fixedSql'. " +
-              s"Error: ${response.getErrorMessage.getStackTrace.asScala.mkString("\n")}.")
+              s"Error message: ${response.getErrorMessage.getMessage}.${if (stacktrace.nonEmpty) s"Stacktrace: $stacktrace."}")
           } else if (response.getResponse.size != 1) {
             throw KsqlEntityListError("Invalid metadata for result set.")
           }
