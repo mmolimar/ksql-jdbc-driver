@@ -16,7 +16,7 @@ class EmbeddedZookeeperServer(private val port: Int = TestUtils.getAvailablePort
   private val factory: ServerCnxnFactory = ServerCnxnFactory.createFactory(new InetSocketAddress("localhost", port), 0)
 
   @throws[IOException]
-  def startup = {
+  def startup(): Unit = {
     info("Starting up embedded Zookeeper")
 
     factory.startup(zookeeper)
@@ -24,11 +24,11 @@ class EmbeddedZookeeperServer(private val port: Int = TestUtils.getAvailablePort
     info("Started embedded Zookeeper: " + getConnection)
   }
 
-  def shutdown = {
+  def shutdown(): Unit = {
     info("Shutting down embedded Zookeeper")
 
-    TestUtils.swallow(zookeeper.shutdown)
-    TestUtils.swallow(factory.shutdown)
+    TestUtils.swallow(zookeeper.shutdown())
+    TestUtils.swallow(factory.shutdown())
 
     TestUtils.deleteFile(snapshotDir)
     TestUtils.deleteFile(logDir)
