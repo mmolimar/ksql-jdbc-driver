@@ -25,26 +25,25 @@ object TestUtils extends Logging {
 
   private val RANDOM: Random = new Random
 
-  def constructTempDir(dirPrefix: String) = {
+  def constructTempDir(dirPrefix: String): File = {
     val file: File = new File(System.getProperty("java.io.tmpdir"), dirPrefix + RANDOM.nextInt(10000000))
     if (!file.mkdirs) throw new RuntimeException("could not create temp directory: " + file.getAbsolutePath)
     file.deleteOnExit()
     file
   }
 
-  def getAvailablePort = {
+  def getAvailablePort: Int = {
     var socket: ServerSocket = null
     try {
       socket = new ServerSocket(0)
       socket.getLocalPort
-
     } catch {
       case e: IOException => throw new IllegalStateException("Cannot find available port: " + e.getMessage, e)
     }
     finally socket.close()
   }
 
-  def waitTillAvailable(host: String, port: Int, maxWaitMs: Int) = {
+  def waitTillAvailable(host: String, port: Int, maxWaitMs: Int): Unit = {
     val defaultWait: Int = 100
     var currentWait: Int = 0
     try
@@ -69,7 +68,7 @@ object TestUtils extends Logging {
     } catch {
       case ioe: IOException => false
     }
-    finally if (Option(ss) != None) ss.close()
+    finally if (Option(ss).isDefined) ss.close()
   }
 
   def buildProducer(brokerList: String, compression: String = "none"): KafkaProducer[Array[Byte], Array[Byte]] = {
@@ -107,7 +106,8 @@ object TestUtils extends Logging {
   }
 
   def buildZkClient(zkConnection: String): KafkaZkClient =
-    KafkaZkClient(zkConnection, false, 6000, 10000, Int.MaxValue, Time.SYSTEM)
+    KafkaZkClient(connectString = zkConnection, isSecure = false, sessionTimeoutMs = 6000,
+      connectionTimeoutMs = 10000, maxInFlightRequests = Int.MaxValue, time = Time.SYSTEM)
 
   @throws[FileNotFoundException]
   def deleteFile(path: File): Boolean = {
@@ -147,13 +147,13 @@ object TestUtils extends Logging {
     ct.runtimeClass.getMethods.filter(_.getDeclaringClass == ct.runtimeClass).map(_.getName)
   }
 
-  def reflectMethods[T <: AnyRef](methods: Seq[String], implemented: Boolean,
-                                  obj: T)(implicit tt: TypeTag[T], ct: ClassTag[T]): Seq[() => Any] = {
+  def reflectMethods[T <: AnyRef](methods: Seq[String], implemented: Boolean, obj: T)
+                                 (implicit tt: TypeTag[T], ct: ClassTag[T]): Seq[() => Any] = {
 
     val ksqlPackage = "com.github.mmolimar.ksql"
     val declarations = for {
       baseClass <- typeTag.tpe.baseClasses
-      if (baseClass.fullName.startsWith(ksqlPackage))
+      if baseClass.fullName.startsWith(ksqlPackage)
     } yield baseClass.typeSignature.decls
 
     declarations.flatten

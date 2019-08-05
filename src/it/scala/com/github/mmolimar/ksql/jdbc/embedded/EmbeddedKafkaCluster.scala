@@ -8,11 +8,13 @@ import kafka.server.{KafkaConfig, KafkaServer}
 import kafka.utils.Logging
 import kafka.zk.AdminZkClient
 
+import scala.collection.Seq
+
 class EmbeddedKafkaCluster(zkConnection: String,
                            ports: Seq[Int] = Seq(TestUtils.getAvailablePort),
                            baseProps: Properties = new Properties) extends Logging {
 
-  private val actualPorts: Seq[Int] = ports.map(resolvePort(_))
+  private val actualPorts: Seq[Int] = ports.map(resolvePort)
 
   private var brokers: Seq[KafkaServer] = Seq.empty
   private var logDirs: Seq[File] = Seq.empty
@@ -20,7 +22,7 @@ class EmbeddedKafkaCluster(zkConnection: String,
   private lazy val zkClient = TestUtils.buildZkClient(zkConnection)
   private lazy val adminZkClient = new AdminZkClient(zkClient)
 
-  def startup = {
+  def startup(): Unit = {
     info("Starting up embedded Kafka brokers")
 
     for ((port, i) <- actualPorts.zipWithIndex) {
@@ -50,7 +52,7 @@ class EmbeddedKafkaCluster(zkConnection: String,
     info(s"Started embedded Kafka brokers: $getBrokerList")
   }
 
-  def shutdown = {
+  def shutdown(): Unit = {
     brokers.foreach(broker => TestUtils.swallow(broker.shutdown))
     logDirs.foreach(logDir => TestUtils.swallow(TestUtils.deleteFile(logDir)))
   }
@@ -59,7 +61,7 @@ class EmbeddedKafkaCluster(zkConnection: String,
 
   def getBrokerList: String = actualPorts.map("localhost:" + _).mkString(",")
 
-  def createTopic(topic: String, numPartitions: Int = 1, replicationFactor: Int = 1) = {
+  def createTopic(topic: String, numPartitions: Int = 1, replicationFactor: Int = 1): Unit = {
     info(s"Creating topic $topic")
     adminZkClient.createTopic(topic, numPartitions, replicationFactor)
   }
@@ -69,11 +71,11 @@ class EmbeddedKafkaCluster(zkConnection: String,
     adminZkClient.deleteTopic(topic)
   }
 
-  def deleteTopics(topics: Seq[String]) = topics.foreach(deleteTopic(_))
+  def deleteTopics(topics: Seq[String]): Unit = topics.foreach(deleteTopic)
 
   def existTopic(topic: String): Boolean = zkClient.topicExists(topic)
 
-  def listTopics = zkClient.getAllTopicsInCluster
+  def listTopics: Seq[String] = zkClient.getAllTopicsInCluster
 
   private def resolvePort(port: Int) = if (port <= 0) TestUtils.getAvailablePort else port
 

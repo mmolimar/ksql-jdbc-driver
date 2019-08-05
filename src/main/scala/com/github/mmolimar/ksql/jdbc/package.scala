@@ -10,9 +10,9 @@ package object jdbc {
 
       def toStream: Stream[ResultSet] = new Iterator[ResultSet] {
 
-        def hasNext = resultSet.next
+        def hasNext(): Boolean = resultSet.next
 
-        def next = resultSet
+        def next(): ResultSet = resultSet
 
       }.toStream
     }

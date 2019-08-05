@@ -38,7 +38,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def updateNString(columnLabel: String, nString: String): Unit = throw NotSupported("updateNString")
 
-  override def clearWarnings: Unit = throw NotSupported("clearWarnings")
+  override def clearWarnings(): Unit = throw NotSupported("clearWarnings")
 
   override def updateTimestamp(columnIndex: Int, x: Timestamp): Unit = throw NotSupported("updateTimestamp")
 
@@ -70,7 +70,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getBinaryStream(columnLabel: String): InputStream = throw NotSupported("getBinaryStream")
 
-  override def beforeFirst: Unit = throw NotSupported("beforeFirst")
+  override def beforeFirst(): Unit = throw NotSupported("beforeFirst")
 
   override def updateNCharacterStream(columnIndex: Int, x: Reader, length: Long): Unit =
     throw NotSupported("updateNCharacterStream")
@@ -138,9 +138,9 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getURL(columnLabel: String): URL = throw NotSupported("getURL")
 
-  override def updateRow: Unit = throw NotSupported("updateRow")
+  override def updateRow(): Unit = throw NotSupported("updateRow")
 
-  override def insertRow: Unit = throw NotSupported("insertRow")
+  override def insertRow(): Unit = throw NotSupported("insertRow")
 
   override def getMetaData: ResultSetMetaData = throw NotSupported("getMetaData")
 
@@ -166,7 +166,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getRowId(columnLabel: String): RowId = throw NotSupported("getRowId")
 
-  override def moveToInsertRow: Unit = throw NotSupported("moveToInsertRow")
+  override def moveToInsertRow(): Unit = throw NotSupported("moveToInsertRow")
 
   override def rowInserted: Boolean = throw NotSupported("rowInserted")
 
@@ -198,15 +198,15 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def updateFloat(columnLabel: String, x: Float): Unit = throw NotSupported("updateFloat")
 
-  override def afterLast: Unit = throw NotSupported("afterLast")
+  override def afterLast(): Unit = throw NotSupported("afterLast")
 
-  override def refreshRow: Unit = throw NotSupported("refreshRow")
+  override def refreshRow(): Unit = throw NotSupported("refreshRow")
 
   override def getNString(columnIndex: Int): String = throw NotSupported("getNString")
 
   override def getNString(columnLabel: String): String = throw NotSupported("getNString")
 
-  override def deleteRow: Unit = throw NotSupported("deleteRow")
+  override def deleteRow(): Unit = throw NotSupported("deleteRow")
 
   override def getConcurrency: Int = throw NotSupported("getConcurrency")
 
@@ -284,7 +284,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getNCharacterStream(columnLabel: String): Reader = throw NotSupported("getNCharacterStream")
 
-  override def close: Unit = throw NotSupported("close")
+  override def close(): Unit = throw NotSupported("close")
 
   override def relative(rows: Int): Boolean = throw NotSupported("relative")
 
@@ -304,7 +304,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def updateLong(columnLabel: String, x: Long): Unit = throw NotSupported("updateLong")
 
-  override def moveToCurrentRow: Unit = throw NotSupported("moveToCurrentRow")
+  override def moveToCurrentRow(): Unit = throw NotSupported("moveToCurrentRow")
 
   override def isClosed: Boolean = throw NotSupported("isClosed")
 
@@ -340,7 +340,7 @@ private[resultset] class ResultSetNotSupported extends ResultSet with WrapperNot
 
   override def getStatement: Statement = throw NotSupported("getStatement")
 
-  override def cancelRowUpdates: Unit = throw NotSupported("cancelRowUpdates")
+  override def cancelRowUpdates(): Unit = throw NotSupported("cancelRowUpdates")
 
   override def getSQLXML(columnIndex: Int): SQLXML = throw NotSupported("getSQLXML")
 
@@ -405,13 +405,15 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
                                                        private val records: Iterator[T]) extends ResultSetNotSupported {
 
   private val indexByLabel: Map[String, Int] = (1 to metadata.getColumnCount)
-    .map(index => (metadata.getColumnLabel(index).toUpperCase -> index)).toMap
+    .map(index => metadata.getColumnLabel(index).toUpperCase -> index).toMap
   private var lastColumnNull = true
   private var rowCounter = 0
 
   protected var currentRow: Option[T] = None
 
   private var closed: Boolean = false
+
+  def hasNext: Boolean = !closed && maxRows != 0 && rowCounter < maxRows && records.hasNext
 
   protected def nextResult: Boolean = records.hasNext match {
     case true =>
@@ -429,15 +431,15 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
       result
   }
 
-  override final def close: Unit = closed match {
+  override final def close(): Unit = closed match {
     case true => // do nothing
     case false =>
       currentRow = None
-      closeInherit
+      closeInherit()
       closed = true
   }
 
-  protected def closeInherit: Unit
+  protected def closeInherit(): Unit
 
   override def getBoolean(columnIndex: Int): Boolean = getColumn[JBoolean](columnIndex)
 
@@ -492,16 +494,16 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
     result
   }
 
-  private def checkRow(columnIndex: Int) = {
-    def checkIfEmpty = if (isEmpty) throw EmptyRow()
+  private def checkRow(columnIndex: Int): Unit = {
+    def checkIfEmpty(): Unit = if (isEmpty) throw EmptyRow()
 
-    def checkColumnBounds(index: Int) = {
+    def checkColumnBounds(index: Int): Unit = {
       val (min, max) = getColumnBounds
       if (index < min || index > max)
         throw InvalidColumn(s"Column with index $index does not exist")
     }
 
-    checkIfEmpty
+    checkIfEmpty()
     checkColumnBounds(columnIndex)
   }
 
@@ -556,7 +558,7 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
   protected def isEmpty: Boolean = currentRow.isEmpty
 
   protected def getColumnIndex(columnLabel: String): Int = {
-    indexByLabel.get(columnLabel.toUpperCase).getOrElse(throw InvalidColumn())
+    indexByLabel.getOrElse(columnLabel.toUpperCase, throw InvalidColumn())
   }
 
   protected def getColumnBounds: (Int, Int)

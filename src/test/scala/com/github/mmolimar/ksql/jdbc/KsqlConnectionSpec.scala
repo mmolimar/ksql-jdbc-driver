@@ -23,7 +23,7 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
 
       "throw not supported exception if not supported" in {
         val methods = implementedMethods[KsqlConnection]
-        reflectMethods[KsqlConnection](methods, false, ksqlConnection)
+        reflectMethods[KsqlConnection](methods = methods, implemented = false, obj = ksqlConnection)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -39,11 +39,11 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         ksqlConnection.getTransactionIsolation should be(Connection.TRANSACTION_NONE)
         ksqlConnection.setClientInfo(new Properties)
 
-        (ksqlRestClient.makeKsqlRequest _).expects(*)
+        (ksqlRestClient.makeKsqlRequest(_: String)).expects(*)
           .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
         ksqlConnection.setClientInfo("", "")
         assertThrows[SQLException] {
-          (ksqlRestClient.makeKsqlRequest _).expects(*)
+          (ksqlRestClient.makeKsqlRequest(_: String)).expects(*)
             .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "", Collections.emptyList[String])))
           ksqlConnection.setClientInfo("", "")
         }
@@ -55,9 +55,9 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
             (new CommandStatuses(Collections.emptyMap[CommandId, CommandStatus.Status])))
         ksqlConnection.isValid(0) should be(true)
 
-        Option(ksqlConnection.getMetaData) should not be (None)
+        Option(ksqlConnection.getMetaData) should not be None
 
-        Option(ksqlConnection.createStatement) should not be (None)
+        Option(ksqlConnection.createStatement) should not be None
         assertThrows[SQLFeatureNotSupportedException] {
           ksqlConnection.createStatement(-1, -1)
         }
@@ -70,9 +70,9 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         ksqlConnection.getCatalog should be(None.orNull)
 
         (ksqlRestClient.close _).expects
-        ksqlConnection.close
+        ksqlConnection.close()
         ksqlConnection.isClosed should be(true)
-        ksqlConnection.commit
+        ksqlConnection.commit()
       }
     }
   }
@@ -84,7 +84,7 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
       "throw not supported exception if not supported" in {
 
         val resultSet = new ConnectionNotSupported
-        reflectMethods[ConnectionNotSupported](Seq.empty, false, resultSet)
+        reflectMethods[ConnectionNotSupported](methods = Seq.empty, implemented = false, obj = resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()

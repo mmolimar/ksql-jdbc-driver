@@ -859,13 +859,13 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
                                  types: Set[String] = Set(".*")): Set[String] = {
     var functions = mutable.Set.empty[String]
 
-    (ksqlConnection.createStatement.executeQuery("LIST FUNCTIONS")).toStream.foreach { fn =>
+    ksqlConnection.createStatement.executeQuery("LIST FUNCTIONS").toStream.foreach { fn =>
       val fnName = fn.getString("FUNCTION_NAME_FN_NAME").toUpperCase
 
       ksqlConnection.createStatement.executeQuery(s"DESCRIBE FUNCTION $fnName").toStream.foreach { fnDesc =>
         val fnAuthor = fnDesc.getString("FUNCTION_DESCRIPTION_AUTHOR").trim.toUpperCase
         val fnReturnType = fnDesc.getString("FUNCTION_DESCRIPTION_FN_RETURN_TYPE")
-        if ((types.filter(fnReturnType.matches(_)).nonEmpty || names.filter(fnName.matches(_)).nonEmpty) &&
+        if ((types.exists(fnReturnType.matches(_)) || names.exists(fnName.matches(_))) &&
           (author.isEmpty || author.get.toUpperCase == fnAuthor.toUpperCase)) {
           functions += fnName
         }
@@ -874,7 +874,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     functions.toSet
   }
 
-  private def validateCatalogAndSchema(catalog: String, schema: String) = {
+  private def validateCatalogAndSchema(catalog: String, schema: String): Unit = {
     if (catalog != null && catalog != "") throw UnknownCatalog(s"Unknown catalog $catalog")
     if (schema != null && schema != "") throw UnknownSchema(s"Unknown schema $schema")
   }

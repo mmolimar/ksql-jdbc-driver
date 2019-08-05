@@ -4,8 +4,8 @@ import java.io.InputStream
 import java.sql.{Connection, ResultSet, SQLWarning, Statement, Types}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.resultset._
-import io.confluent.ksql.parser.KsqlParser
+import com.github.mmolimar.ksql.jdbc.resultset.{StreamedResultSet, _}
+import io.confluent.ksql.parser.{DefaultKsqlParser, KsqlParser}
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
 import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
 import io.confluent.ksql.rest.entity._
@@ -15,13 +15,13 @@ import scala.util.{Failure, Success, Try}
 
 private object KsqlStatement {
 
-  private val ksqlParser: KsqlParser = new KsqlParser
+  private val ksqlParser: KsqlParser = new DefaultKsqlParser
 
 }
 
 class StatementNotSupported extends Statement with WrapperNotSupported {
 
-  override def cancel: Unit = throw NotSupported("cancel")
+  override def cancel(): Unit = throw NotSupported("cancel")
 
   override def getResultSetHoldability: Int = throw NotSupported("getResultSetHoldability")
 
@@ -87,11 +87,11 @@ class StatementNotSupported extends Statement with WrapperNotSupported {
 
   override def isPoolable: Boolean = throw NotSupported("isPoolable")
 
-  override def clearBatch: Unit = throw NotSupported("clearBatch")
+  override def clearBatch(): Unit = throw NotSupported("clearBatch")
 
-  override def close: Unit = throw NotSupported("close")
+  override def close(): Unit = throw NotSupported("close")
 
-  override def closeOnCompletion: Unit = throw NotSupported("closeOnCompletion")
+  override def closeOnCompletion(): Unit = throw NotSupported("closeOnCompletion")
 
   override def executeBatch: Array[Int] = throw NotSupported("executeBatch")
 
@@ -99,7 +99,7 @@ class StatementNotSupported extends Statement with WrapperNotSupported {
 
   override def setFetchSize(rows: Int): Unit = throw NotSupported("setFetchSize")
 
-  override def clearWarnings: Unit = throw NotSupported("clearWarnings")
+  override def clearWarnings(): Unit = throw NotSupported("clearWarnings")
 
   override def getResultSetConcurrency: Int = throw NotSupported("getResultSetConcurrency")
 
@@ -114,13 +114,13 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
   private var maxRows = 0
   private var closed = false
 
-  override def cancel: Unit = {
-    currentResultSet.map(_.close)
+  override def cancel(): Unit = {
+    currentResultSet.foreach(_.close)
     currentResultSet = None
   }
 
-  override def close: Unit = {
-    cancel
+  override def close(): Unit = {
+    cancel()
     closed = true
   }
 
@@ -132,12 +132,19 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
 
   override def getMaxRows: Int = maxRows
 
+  override def getMoreResults: Boolean = !isClosed && currentResultSet.isDefined && (currentResultSet.get match {
+    case srs: StreamedResultSet => srs.hasNext
+    case irs: IteratorResultSet[_] => irs.rows.hasNext
+  })
+
+  override def getMoreResults(current: Int): Boolean = getMoreResults
+
   private def executeKsqlRequest(sql: String): Unit = {
     if (closed) throw AlreadyClosed("Statement already closed.")
 
     currentResultSet = None
     val fixedSql = fixSql(sql)
-    val stmt = Try(ksqlParser.getStatements(fixedSql)) match {
+    val stmt = Try(ksqlParser.parse(fixedSql)) match {
       case Failure(e) => throw KsqlQueryError(s"Error parsing query '$fixedSql': ${e.getMessage}.", e)
       case Success(s) if s.size() != 1 => throw KsqlQueryError("You have to execute just one query at a time. " +
         s"Number of queries sent: '${s.size}'.")
@@ -146,9 +153,9 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
 
     val response = stmt.getStatement.statement.getStart.getText.trim.toUpperCase match {
       case "SELECT" =>
-        ksqlClient.makeQueryRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
+        ksqlClient.makeQueryRequest(fixedSql, None.orNull).asInstanceOf[RestResponse[AnyRef]]
       case "PRINT" =>
-        ksqlClient.makePrintTopicRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
+        ksqlClient.makePrintTopicRequest(fixedSql, None.orNull).asInstanceOf[RestResponse[AnyRef]]
       case _ =>
         ksqlClient.makeKsqlRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
     }
@@ -159,13 +166,14 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     }
 
     val resultSet: ResultSet = response.get match {
-      case e: KsqlRestClient.QueryStream => {
-        implicit lazy val queryDesc = {
+      case e: KsqlRestClient.QueryStream =>
+        implicit lazy val queryDesc: QueryDescription = {
           val response = ksqlClient.makeKsqlRequest(s"EXPLAIN $fixedSql")
           if (response.isErroneous) {
             import scala.collection.JavaConverters._
+            val stacktrace = response.getErrorMessage.getStackTrace.asScala.mkString("\n").trim
             throw KsqlQueryError(s"Error getting metadata for query: '$fixedSql'. " +
-              s"Error: ${response.getErrorMessage.getStackTrace.asScala.mkString("\n")}.")
+              s"Error message: ${response.getErrorMessage.getMessage}.${if (stacktrace.nonEmpty) s"Stacktrace: $stacktrace."}")
           } else if (response.getResponse.size != 1) {
             throw KsqlEntityListError("Invalid metadata for result set.")
           }
@@ -173,7 +181,6 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
         }.getQueryDescription
 
         e.asInstanceOf[KsqlRestClient.QueryStream]
-      }
       case e: KsqlEntityList => e.asInstanceOf[KsqlEntityList]
       case e: InputStream => e.asInstanceOf[InputStream]
     }
@@ -240,8 +247,8 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     import KsqlEntityHeaders._
 
     if (list.size != 1) throw KsqlEntityListError(s"KSQL entity list with an invalid number of entities: '${list.size}'.")
-    list.asScala.headOption.map(_ match {
-      case e: CommandStatusEntity => {
+    list.asScala.headOption.map {
+      case e: CommandStatusEntity =>
         val rows = Iterator(Seq(
           e.getCommandId.getType.name,
           e.getCommandId.getEntity,
@@ -250,9 +257,8 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           e.getCommandStatus.getMessage
         ))
         new IteratorResultSet[String](commandStatusEntity, maxRows, rows)
-      }
       case e: ExecutionPlan => new IteratorResultSet[String](executionPlanEntity, maxRows, Iterator(Seq(e.getExecutionPlan)))
-      case e: FunctionDescriptionList => {
+      case e: FunctionDescriptionList =>
         val rows = e.getFunctions.asScala.map(f => Seq(
           e.getAuthor,
           e.getDescription,
@@ -265,15 +271,13 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           f.getArguments.asScala.map(arg => s"${arg.getName}:${arg.getType}").mkString(", ")
         )).toIterator
         new IteratorResultSet[String](functionDescriptionListEntity, maxRows, rows)
-      }
-      case e: FunctionNameList => {
+      case e: FunctionNameList =>
         val rows = e.getFunctions.asScala.map(f => Seq(
           f.getName,
           f.getType.name
         )).toIterator
         new IteratorResultSet[String](functionNameListEntity, maxRows, rows)
-      }
-      case e: KafkaTopicsList => {
+      case e: KafkaTopicsList =>
         val rows = e.getTopics.asScala.map(t => Seq(
           t.getName,
           t.getConsumerCount,
@@ -282,35 +286,30 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           t.getReplicaInfo.asScala.mkString(", ")
         )).toIterator
         new IteratorResultSet[Any](kafkaTopicsListEntity, maxRows, rows)
-      }
-      case e: KsqlTopicsList => {
+      case e: KsqlTopicsList =>
         val rows = e.getTopics.asScala.map(t => Seq(
           t.getName,
           t.getKafkaTopic,
           t.getFormat.name
         )).toIterator
         new IteratorResultSet[String](ksqlTopicsListEntity, maxRows, rows)
-      }
-      case e: PropertiesList => {
+      case e: PropertiesList =>
         val rows = e.getProperties.asScala.map(p => Seq(
           p._1,
           p._2.toString
         )).toIterator
         new IteratorResultSet[String](propertiesListEntity, maxRows, rows)
-      }
-      case e: Queries => {
+      case e: Queries =>
         val rows = e.getQueries.asScala.map(q => Seq(
           q.getId.getId,
           q.getQueryString,
           q.getSinks.asScala.mkString(", ")
         )).toIterator
         new IteratorResultSet[String](queriesEntity, maxRows, rows)
-      }
-      case e@(_: QueryDescriptionEntity | _: QueryDescriptionList) => {
-        val descriptions: Seq[QueryDescription] = if (e.isInstanceOf[QueryDescriptionEntity]) {
-          Seq(e.asInstanceOf[QueryDescriptionEntity].getQueryDescription)
-        } else {
-          e.asInstanceOf[QueryDescriptionList].getQueryDescriptions.asScala
+      case e@(_: QueryDescriptionEntity | _: QueryDescriptionList) =>
+        val descriptions: Seq[QueryDescription] = e match {
+          case qde: QueryDescriptionEntity => Seq(qde.getQueryDescription)
+          case qdl: QueryDescriptionList => qdl.getQueryDescriptions.asScala
         }
 
         val rows = descriptions.map(d => Seq(
@@ -322,12 +321,10 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           d.getExecutionPlan
         )).toIterator
         new IteratorResultSet[String](queryDescriptionEntityList, maxRows, rows)
-      }
-      case e@(_: SourceDescriptionEntity | _: SourceDescriptionList) => {
-        val descriptions: Seq[SourceDescription] = if (e.isInstanceOf[SourceDescriptionEntity]) {
-          Seq(e.asInstanceOf[SourceDescriptionEntity].getSourceDescription)
-        } else {
-          e.asInstanceOf[SourceDescriptionList].getSourceDescriptions.asScala
+      case e@(_: SourceDescriptionEntity | _: SourceDescriptionList) =>
+        val descriptions: Seq[SourceDescription] = e match {
+          case sde: SourceDescriptionEntity => Seq(sde.getSourceDescription)
+          case sdl: SourceDescriptionList => sdl.getSourceDescriptions.asScala
         }
 
         val rows = descriptions.map(d => Seq(
@@ -343,16 +340,14 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           d.getTimestamp
         )).toIterator
         new IteratorResultSet[Any](sourceDescriptionEntityList, maxRows, rows)
-      }
-      case e: StreamsList => {
+      case e: StreamsList =>
         val rows = e.getStreams.asScala.map(s => Seq(
           s.getName,
           s.getTopic,
           s.getFormat
         )).toIterator
         new IteratorResultSet[String](streamsListEntity, maxRows, rows)
-      }
-      case e: TablesList => {
+      case e: TablesList =>
         val rows = e.getTables.asScala.map(t => Seq(
           t.getName,
           t.getTopic,
@@ -360,8 +355,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           t.getIsWindowed
         )).toIterator
         new IteratorResultSet[Any](tablesListEntity, maxRows, rows)
-      }
-      case e: TopicDescription => {
+      case e: TopicDescription =>
         val rows = Iterator(Seq(
           e.getName,
           e.getKafkaTopic,
@@ -369,8 +363,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           e.getSchemaString
         ))
         new IteratorResultSet[String](topicDescriptionEntity, maxRows, rows)
-      }
-    }).getOrElse(throw KsqlCommandError(s"Cannot build result set for '${list.get(0).getStatementText}'."))
+    }.getOrElse(throw KsqlCommandError(s"Cannot build result set for '${list.get(0).getStatementText}'."))
   }
 
 }

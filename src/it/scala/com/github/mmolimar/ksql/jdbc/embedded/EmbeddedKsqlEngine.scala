@@ -26,34 +26,34 @@ class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailableP
 
   import java.util.function.{Function => JFunction, Supplier => JSupplier}
 
-  implicit def toJavaSupplier[A](f: Function0[A]) = new JSupplier[A] {
+  implicit def toJavaSupplier[A](f: Function0[A]): JSupplier[A] = new JSupplier[A] {
     override def get: A = f()
   }
 
-  implicit def toJavaFunction[A, B](f: Function1[A, B]) = new JFunction[A, B] {
+  implicit def toJavaFunction[A, B](f: Function1[A, B]): JFunction[A, B] = new JFunction[A, B] {
     override def apply(a: A): B = f(a)
   }
 
-  lazy val ksqlEngine = {
+  lazy val ksqlEngine: KsqlRestApplication = {
     val versionCheckerAgent = mock[VersionCheckerAgent]
     (versionCheckerAgent.start _).expects(*, *).returns().anyNumberOfTimes
     (versionCheckerAgent.updateLastRequestTime _).expects().returns().anyNumberOfTimes
-    KsqlRestApplication.buildApplication(config, (_: JSupplier[java.lang.Boolean]) => versionCheckerAgent)
+    KsqlRestApplication.buildApplication(config, (_: JSupplier[java.lang.Boolean]) => versionCheckerAgent, Int.MaxValue)
   }
 
   @throws[IOException]
-  def startup = {
+  def startup(): Unit = {
     info("Starting up embedded KSQL engine")
 
-    ksqlEngine.start
+    ksqlEngine.start()
 
     info("Started embedded Zookeeper: " + getConnection)
   }
 
-  def shutdown = {
+  def shutdown(): Unit = {
     info("Shutting down embedded KSQL engine")
 
-    TestUtils.swallow(ksqlEngine.stop)
+    TestUtils.swallow(ksqlEngine.stop())
 
     info("Shutted down embedded KSQL engine")
   }
