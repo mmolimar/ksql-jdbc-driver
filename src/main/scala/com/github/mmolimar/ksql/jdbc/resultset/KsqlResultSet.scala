@@ -7,7 +7,7 @@ import java.util.{NoSuchElementException, Scanner, Iterator => JIterator}
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
 import io.confluent.ksql.GenericRow
-import io.confluent.ksql.rest.client.KsqlRestClient
+import io.confluent.ksql.rest.client.QueryStream
 import io.confluent.ksql.rest.entity.StreamedRow
 
 import scala.collection.JavaConversions._
@@ -34,7 +34,7 @@ class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData, priva
 
 trait KsqlStream extends Closeable with JIterator[StreamedRow]
 
-private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends KsqlStream {
+private[jdbc] class KsqlQueryStream(stream: QueryStream) extends KsqlStream {
 
   override def close(): Unit = stream.close()
 
@@ -94,10 +94,11 @@ class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
 
   override protected def closeInherit(): Unit = stream.close()
 
-  override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
+  override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.get.getColumns.size)
 
   override protected def getValue[T](columnIndex: Int): T = {
-    currentRow.map(_.getRow.getColumns.get(columnIndex - 1)).getOrElse(throw InvalidColumn()).asInstanceOf[T]
+    currentRow.filter(_.getRow.isPresent).map(_.getRow.get.getColumnValue[T](columnIndex - 1))
+      .getOrElse(throw InvalidColumn())
   }
 
   override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY

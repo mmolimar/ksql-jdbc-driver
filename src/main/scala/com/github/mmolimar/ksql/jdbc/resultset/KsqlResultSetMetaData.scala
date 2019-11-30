@@ -5,7 +5,7 @@ import java.sql.{ResultSetMetaData, Types}
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.implicits.toIndexedMap
 import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
-import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 
 
 class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extends ResultSetMetaDataNotSupported {
@@ -42,6 +42,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
       case Types.INTEGER => KsqlType.INTEGER
       case Types.BIGINT => KsqlType.BIGINT
       case Types.DOUBLE => KsqlType.DOUBLE
+      case Types.DECIMAL => KsqlType.DECIMAL
       case Types.BOOLEAN => KsqlType.BOOLEAN
       case Types.VARCHAR => KsqlType.STRING
       case Types.JAVA_OBJECT => KsqlType.MAP

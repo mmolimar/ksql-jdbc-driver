@@ -6,8 +6,8 @@ import java.sql.{Connection, ResultSet, SQLWarning, Statement, Types}
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.resultset.{StreamedResultSet, _}
 import io.confluent.ksql.parser.{DefaultKsqlParser, KsqlParser}
-import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
-import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
+import io.confluent.ksql.rest.client.{KsqlRestClient, QueryStream, RestResponse}
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 import io.confluent.ksql.rest.entity._
 
 import scala.collection.JavaConverters._
@@ -166,7 +166,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     }
 
     val resultSet: ResultSet = response.get match {
-      case e: KsqlRestClient.QueryStream =>
+      case e: QueryStream =>
         implicit lazy val queryDesc: QueryDescription = {
           val response = ksqlClient.makeKsqlRequest(s"EXPLAIN $fixedSql")
           if (response.isErroneous) {
@@ -179,8 +179,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           }
           response.getResponse.get(0).asInstanceOf[QueryDescriptionEntity]
         }.getQueryDescription
-
-        e.asInstanceOf[KsqlRestClient.QueryStream]
+        e
       case e: KsqlEntityList => e.asInstanceOf[KsqlEntityList]
       case e: InputStream => e.asInstanceOf[InputStream]
     }
@@ -218,12 +217,13 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     Option(sql).filter(_.trim.nonEmpty).map(s => if (s.trim.last == ';') s else s + ";").getOrElse("")
   }
 
-  private implicit def toResultSet(stream: KsqlRestClient.QueryStream)
+  private implicit def toResultSet(stream: QueryStream)
                                   (implicit queryDesc: QueryDescription): ResultSet = {
     def mapType(ksqlType: KsqlType): (Int, Int) = ksqlType match {
       case KsqlType.INTEGER => (Types.INTEGER, 16)
       case KsqlType.BIGINT => (Types.BIGINT, 32)
       case KsqlType.DOUBLE => (Types.DOUBLE, 32)
+      case KsqlType.DECIMAL => (Types.DECIMAL, 32)
       case KsqlType.BOOLEAN => (Types.BOOLEAN, 8)
       case KsqlType.STRING => (Types.VARCHAR, 128)
       case KsqlType.MAP => (Types.JAVA_OBJECT, 255)
@@ -280,19 +280,17 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
       case e: KafkaTopicsList =>
         val rows = e.getTopics.asScala.map(t => Seq(
           t.getName,
-          t.getConsumerCount,
-          t.getConsumerGroupCount,
-          t.getRegistered.booleanValue,
           t.getReplicaInfo.asScala.mkString(", ")
         )).toIterator
         new IteratorResultSet[Any](kafkaTopicsListEntity, maxRows, rows)
-      case e: KsqlTopicsList =>
+      case e: KafkaTopicsListExtended =>
         val rows = e.getTopics.asScala.map(t => Seq(
           t.getName,
-          t.getKafkaTopic,
-          t.getFormat.name
+          t.getConsumerCount,
+          t.getConsumerGroupCount,
+          t.getReplicaInfo.asScala.mkString(", ")
         )).toIterator
-        new IteratorResultSet[String](ksqlTopicsListEntity, maxRows, rows)
+        new IteratorResultSet[Any](kafkaTopicsListExtendedEntity, maxRows, rows)
       case e: PropertiesList =>
         val rows = e.getProperties.asScala.map(p => Seq(
           p._1,
@@ -311,7 +309,6 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           case qde: QueryDescriptionEntity => Seq(qde.getQueryDescription)
           case qdl: QueryDescriptionList => qdl.getQueryDescriptions.asScala
         }
-
         val rows = descriptions.map(d => Seq(
           d.getId.getId,
           d.getFields.asScala.map(_.getName).mkString(", "),
@@ -326,7 +323,6 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           case sde: SourceDescriptionEntity => Seq(sde.getSourceDescription)
           case sdl: SourceDescriptionList => sdl.getSourceDescriptions.asScala
         }
-
         val rows = descriptions.map(d => Seq(
           d.getKey,
           d.getName,

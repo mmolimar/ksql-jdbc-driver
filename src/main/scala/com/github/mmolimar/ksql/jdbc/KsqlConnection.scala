@@ -3,7 +3,7 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql._
 import java.util
 import java.util.concurrent.Executor
-import java.util.{Collections, Properties}
+import java.util.{Collections, Optional, Properties}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
@@ -166,11 +166,12 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
     } else {
       (Collections.emptyMap[String, AnyRef], Collections.emptyMap[String, String])
     }
-    new KsqlRestClient(values.ksqlUrl, localProps, clientProps)
+    // TODO add credentials
+    KsqlRestClient.create(values.ksqlUrl, localProps, clientProps, Optional.empty())
   }
 
   private[jdbc] def validate(): Unit = {
-    Try(ksqlClient.makeRootRequest) match {
+    Try(ksqlClient.getServerInfo) match {
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
       case Failure(e) => throw CannotConnect(values.ksqlServer, e.getMessage)

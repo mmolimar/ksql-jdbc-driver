@@ -162,6 +162,14 @@ object KsqlEntityHeaders {
     HeaderField("KSQL_TOPIC_FORMAT", Types.VARCHAR, 16)
   )
 
+  val kafkaTopicsListExtendedEntity = List(
+    HeaderField("KSQL_TOPIC_NAME", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_CONSUMER_COUNT", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_CONSUMER_GROUP_COUNT", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_FORMAT", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_REPLICA_INFO", Types.VARCHAR, 32)
+  )
+
   val propertiesListEntity = List(
     HeaderField("PROPERTY_NAME", Types.VARCHAR, 16),
     HeaderField("PROPERTY_VALUE", Types.VARCHAR, 32)
@@ -182,7 +190,7 @@ object KsqlEntityHeaders {
     HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 255)
   )
 
-  val queryDescriptionEntityList = queryDescriptionEntity
+  val queryDescriptionEntityList: List[HeaderField] = queryDescriptionEntity
 
   val sourceDescriptionEntity = List(
     HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
@@ -197,7 +205,7 @@ object KsqlEntityHeaders {
     HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
   )
 
-  val sourceDescriptionEntityList = sourceDescriptionEntity
+  val sourceDescriptionEntityList: List[HeaderField] = sourceDescriptionEntity
 
   val streamsListEntity = List(
     HeaderField("STREAM_NAME", Types.VARCHAR, 16),
