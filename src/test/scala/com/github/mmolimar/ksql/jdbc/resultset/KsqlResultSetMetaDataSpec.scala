@@ -4,7 +4,7 @@ import java.sql.{ResultSetMetaData, SQLFeatureNotSupportedException, Types}
 
 import com.github.mmolimar.ksql.jdbc.HeaderField
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
-import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
 
@@ -30,7 +30,7 @@ class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory 
       "throw not supported exception if not supported" in {
 
         val methods = implementedMethods[KsqlResultSetMetaData]
-        reflectMethods[KsqlResultSetMetaData](methods, false, resultSet)
+        reflectMethods[KsqlResultSetMetaData](methods, implemented = false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
