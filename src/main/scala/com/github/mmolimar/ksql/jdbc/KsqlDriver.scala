@@ -6,7 +6,7 @@ import java.util.logging.Logger
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 
-import scala.util.Try
+import scala.util.matching.Regex
 
 object KsqlDriver {
 
@@ -26,20 +26,22 @@ object KsqlDriver {
   val ksqlMicroVersion = 2
   val ksqlVersion = s"$ksqlMajorVersion.$ksqlMinorVersion.$ksqlMicroVersion"
 
+  private val ksqlUserPassRegex = "((.+):(.+)@){0,1}"
   private val ksqlServerRegex = "([A-Za-z0-9._%+-]+):([0-9]{1,5})"
-
   private val ksqlPropsRegex = "(\\?([A-Za-z0-9._-]+=[A-Za-z0-9._-]+(&[A-Za-z0-9._-]+=[A-Za-z0-9._-]+)*)){0,1}"
 
-  val urlRegex = s"${ksqlPrefix}${ksqlServerRegex}${ksqlPropsRegex}\\z".r
+  val urlRegex: Regex = s"$ksqlPrefix$ksqlUserPassRegex$ksqlServerRegex$ksqlPropsRegex\\z".r
 
-  def parseUrl(url: String): KsqlConnectionValues = {
-    url match {
-      case urlRegex(ksqlServer, port, _, properties, _) =>
-        KsqlConnectionValues(ksqlServer, port.toInt,
-          Try(properties.split("&")).getOrElse(Array.empty[String])
-            .map(_.split("=")).map(prop => prop(0) -> prop(1)).toMap)
-      case _ => throw InvalidUrl(url)
-    }
+  def parseUrl(url: String): KsqlConnectionValues = url match {
+    case urlRegex(_, username, password, ksqlServer, port, _, props, _) =>
+      KsqlConnectionValues(
+        ksqlServer,
+        port.toInt,
+        Option(username),
+        Option(password),
+        Option(props).map(_.split("&").map(_.split("=")).map(p => p(0) -> p(1)).toMap).getOrElse(Map.empty)
+      )
+    case _ => throw InvalidUrl(url)
   }
 }
 

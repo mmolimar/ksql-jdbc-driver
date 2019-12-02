@@ -15,7 +15,7 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
   "A KsqlConnection" when {
 
     "validating specs" should {
-      val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
+      val values = KsqlConnectionValues("localhost", 8080, None, None, Map.empty[String, String])
       val mockKsqlRestClient = mock[MockableKsqlRestClient]
       val ksqlConnection = new KsqlConnection(values, new Properties) {
         override def init: KsqlRestClient = mockKsqlRestClient

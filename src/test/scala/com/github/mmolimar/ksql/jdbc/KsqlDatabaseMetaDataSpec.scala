@@ -22,7 +22,7 @@ class KsqlDatabaseMetaDataSpec extends WordSpec with Matchers with MockFactory w
     val mockResponse = mock[Response]
     val mockKsqlRestClient = mock[MockableKsqlRestClient]
 
-    val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
+    val values = KsqlConnectionValues("localhost", 8080, None, None, Map.empty[String, String])
     val ksqlConnection = new KsqlConnection(values, new Properties) {
       override def init: KsqlRestClient = mockKsqlRestClient
     }

@@ -99,8 +99,12 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         assertThrows[SQLException] {
           KsqlDriver.parseUrl("jdbc:invalid://ksql-server:8080")
         }
+        assertThrows[SQLException] {
+          KsqlDriver.parseUrl("jdbc:ksql://user@ksql-server:8080")
+        }
       }
       "return the URL parsed properly" in {
+        val ksqlUserPass = "usr:pass"
         val ksqlServer = "ksql-server"
         val ksqlPort = 8080
         val ksqlUrl = s"http://$ksqlServer:$ksqlPort"
@@ -116,6 +120,21 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         connectionValues.isSecured should be(false)
         connectionValues.properties should be(false)
         connectionValues.timeout should be(0)
+        connectionValues.username should be(None)
+        connectionValues.password should be(None)
+
+        url = s"jdbc:ksql://$ksqlUserPass@$ksqlServer:$ksqlPort"
+        connectionValues = KsqlDriver.parseUrl(url)
+        connectionValues.ksqlServer should be(ksqlServer)
+        connectionValues.port should be(ksqlPort)
+        connectionValues.config.isEmpty should be(true)
+        connectionValues.ksqlUrl should be(ksqlUrl)
+        connectionValues.jdbcUrl should be(url)
+        connectionValues.isSecured should be(false)
+        connectionValues.properties should be(false)
+        connectionValues.timeout should be(0)
+        connectionValues.username should be(Some("usr"))
+        connectionValues.password should be(Some("pass"))
 
         url = s"jdbc:ksql://$ksqlServer:$ksqlPort?prop1=value1"
         connectionValues = KsqlDriver.parseUrl(url)
@@ -128,8 +147,10 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         connectionValues.isSecured should be(false)
         connectionValues.properties should be(false)
         connectionValues.timeout should be(0)
+        connectionValues.username should be(None)
+        connectionValues.password should be(None)
 
-        url = s"jdbc:ksql://$ksqlServer:$ksqlPort?prop1=value1&secured=true&prop2=value2"
+        url = s"jdbc:ksql://$ksqlUserPass@$ksqlServer:$ksqlPort?prop1=value1&secured=true&prop2=value2"
         connectionValues = KsqlDriver.parseUrl(url)
         connectionValues.ksqlServer should be(ksqlServer)
         connectionValues.port should be(ksqlPort)
@@ -142,6 +163,8 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         connectionValues.isSecured should be(true)
         connectionValues.properties should be(false)
         connectionValues.timeout should be(0)
+        connectionValues.username should be(Some("usr"))
+        connectionValues.password should be(Some("pass"))
 
         url = s"jdbc:ksql://$ksqlServer:$ksqlPort?prop1=value1&timeout=100&prop2=value2"
         connectionValues = KsqlDriver.parseUrl(url)
@@ -156,6 +179,8 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         connectionValues.isSecured should be(false)
         connectionValues.properties should be(false)
         connectionValues.timeout should be(100)
+        connectionValues.username should be(None)
+        connectionValues.password should be(None)
 
         url = s"jdbc:ksql://$ksqlServer:$ksqlPort?prop1=value1&properties=true&prop2=value2"
         connectionValues = KsqlDriver.parseUrl(url)
@@ -170,8 +195,10 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         connectionValues.isSecured should be(false)
         connectionValues.properties should be(true)
         connectionValues.timeout should be(0)
+        connectionValues.username should be(None)
+        connectionValues.password should be(None)
 
-        url = s"jdbc:ksql://$ksqlServer:$ksqlPort?timeout=100&secured=true&properties=true&prop1=value1"
+        url = s"jdbc:ksql://$ksqlUserPass@$ksqlServer:$ksqlPort?timeout=100&secured=true&properties=true&prop1=value1"
         connectionValues = KsqlDriver.parseUrl(url)
         connectionValues.ksqlServer should be(ksqlServer)
         connectionValues.port should be(ksqlPort)
@@ -185,6 +212,8 @@ class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
         connectionValues.isSecured should be(true)
         connectionValues.properties should be(true)
         connectionValues.timeout should be(100)
+        connectionValues.username should be(Some("usr"))
+        connectionValues.password should be(Some("pass"))
       }
     }
   }
