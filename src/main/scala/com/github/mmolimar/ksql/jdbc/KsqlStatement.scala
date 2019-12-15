@@ -146,7 +146,8 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     val fixedSql = fixSql(sql)
     val stmt = Try(ksqlParser.parse(fixedSql)) match {
       case Failure(e) => throw KsqlQueryError(s"Error parsing query '$fixedSql': ${e.getMessage}.", None, e)
-      case Success(s) if s.size() != 1 => throw KsqlQueryError("You have to execute just one query at a time. " +
+      case Success(s) if s.isEmpty => throw KsqlQueryError("Query cannot be empty.")
+      case Success(s) if s.size() > 1 => throw KsqlQueryError("You have to execute just one query at a time. " +
         s"Number of queries sent: '${s.size}'.")
       case Success(s) => s.get(0)
     }

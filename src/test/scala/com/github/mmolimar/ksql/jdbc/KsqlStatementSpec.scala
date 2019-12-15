@@ -62,6 +62,9 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
         assertThrows[SQLException] {
           statement.execute("invalid query", Array[String]())
         }
+        assertThrows[SQLException] {
+          statement.execute("select * from test; select * from test;")
+        }
 
         assertThrows[SQLException] {
           (mockKsqlRestClient.makeQueryRequest _).expects(*, *)
