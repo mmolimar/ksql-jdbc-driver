@@ -483,14 +483,14 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
   override def wasNull: Boolean = lastColumnNull
 
-  private def getColumn[T <: AnyRef](columnLabel: String)(implicit ev: ClassTag[T]): T = {
-    getColumn[T](getColumnIndex(columnLabel))
+  private def getColumn[V <: AnyRef](columnLabel: String)(implicit ev: ClassTag[V]): V = {
+    getColumn[V](getColumnIndex(columnLabel))
   }
 
-  private def getColumn[T <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[T]): T = {
+  private def getColumn[V <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[V]): V = {
     checkRow(columnIndex)
-    val result = inferValue[T](columnIndex)
-    lastColumnNull = Option(result).map(_ => false).getOrElse(true)
+    val result = inferValue[V](columnIndex)
+    lastColumnNull = Option(result).forall(_ => false)
     result
   }
 
@@ -507,8 +507,8 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
     checkColumnBounds(columnIndex)
   }
 
-  private def inferValue[T <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[T]): T = {
-    val value = getValue[T](columnIndex)
+  private def inferValue[V <: AnyRef](columnIndex: Int)(implicit ev: ClassTag[V]): V = {
+    val value = getValue[V](columnIndex)
 
     import ImplicitClasses._
     ev.runtimeClass match {
@@ -540,19 +540,19 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
         scala.Array[Byte](value.asInstanceOf[JBoolean].compareTo(false).byteValue)
       case _ => value
     }
-  }.asInstanceOf[T]
+    }.asInstanceOf[V]
 
   private object ImplicitClasses {
-    val Any_ = classOf[Any]
-    val String_ = classOf[String]
-    val JBoolean_ = classOf[JBoolean]
-    val JShort_ = classOf[JShort]
-    val JInt_ = classOf[JInt]
-    val JLong_ = classOf[JLong]
-    val JDouble_ = classOf[JDouble]
-    val JFloat_ = classOf[JFloat]
-    val JByte_ = classOf[JByte]
-    val JByteArray_ = classOf[scala.Array[Byte]]
+    val Any_ : Class[Any] = classOf[Any]
+    val String_ : Class[String] = classOf[String]
+    val JBoolean_ : Class[JBoolean] = classOf[JBoolean]
+    val JShort_ : Class[JShort] = classOf[JShort]
+    val JInt_ : Class[JInt] = classOf[JInt]
+    val JLong_ : Class[JLong] = classOf[JLong]
+    val JDouble_ : Class[JDouble] = classOf[JDouble]
+    val JFloat_ : Class[JFloat] = classOf[JFloat]
+    val JByte_ : Class[JByte] = classOf[JByte]
+    val JByteArray_ : Class[scala.Array[Byte]] = classOf[scala.Array[Byte]]
   }
 
   protected def isEmpty: Boolean = currentRow.isEmpty
@@ -563,6 +563,6 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
   protected def getColumnBounds: (Int, Int)
 
-  protected def getValue[T <: AnyRef](columnIndex: Int): T
+  protected def getValue[V <: AnyRef](columnIndex: Int): V
 
 }

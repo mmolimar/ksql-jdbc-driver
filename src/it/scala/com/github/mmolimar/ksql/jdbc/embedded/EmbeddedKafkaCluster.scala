@@ -75,7 +75,7 @@ class EmbeddedKafkaCluster(zkConnection: String,
 
   def existTopic(topic: String): Boolean = zkClient.topicExists(topic)
 
-  def listTopics: Seq[String] = zkClient.getAllTopicsInCluster
+  def listTopics: Set[String] = zkClient.getAllTopicsInCluster
 
   private def resolvePort(port: Int) = if (port <= 0) TestUtils.getAvailablePort else port
 

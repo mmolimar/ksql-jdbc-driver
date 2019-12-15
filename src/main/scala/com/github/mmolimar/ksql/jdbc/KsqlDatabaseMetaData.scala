@@ -25,7 +25,7 @@ object TableTypes {
     val name: String = "STREAM"
   }
 
-  val tableTypes = Seq(TABLE, STREAM)
+  val tableTypes: Seq[TableType] = Seq(TABLE, STREAM)
 
 }
 
@@ -865,7 +865,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
       ksqlConnection.createStatement.executeQuery(s"DESCRIBE FUNCTION $fnName").toStream.foreach { fnDesc =>
         val fnAuthor = fnDesc.getString("FUNCTION_DESCRIPTION_AUTHOR").trim.toUpperCase
         val fnReturnType = fnDesc.getString("FUNCTION_DESCRIPTION_FN_RETURN_TYPE")
-        if ((types.exists(fnReturnType.matches(_)) || names.exists(fnName.matches(_))) &&
+        if ((types.exists(fnReturnType.matches) || names.exists(fnName.matches)) &&
           (author.isEmpty || author.get.toUpperCase == fnAuthor.toUpperCase)) {
           functions += fnName
         }

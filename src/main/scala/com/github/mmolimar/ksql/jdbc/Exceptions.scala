@@ -11,19 +11,19 @@ sealed trait KsqlException {
 }
 
 case class InvalidUrl(url: String, override val cause: Throwable = None.orNull) extends KsqlException {
-  override def message = s"URL with value ${url} is not valid. It must match de regex ${KsqlDriver.urlRegex}."
+  override def message = s"URL with value $url is not valid. It must match de regex ${KsqlDriver.urlRegex}."
 }
 
 case class CannotConnect(url: String, msg: String, override val cause: Throwable = None.orNull) extends KsqlException {
-  override def message = s"Cannot connect to this URL ${url}. Error message: ${msg}."
+  override def message = s"Cannot connect to this URL $url. Error message: $msg."
 }
 
 case class NotConnected(url: String, override val cause: Throwable = None.orNull) extends KsqlException {
-  override def message = s"Not connected to database: ${url}."
+  override def message = s"Not connected to database: $url."
 }
 
 case class InvalidProperty(name: String, override val cause: Throwable = None.orNull) extends KsqlException {
-  override def message = s"Invalid property ${name}."
+  override def message = s"Invalid property $name."
 }
 
 case class NotSupported(feature: String, override val cause: Throwable = None.orNull) extends KsqlException {
