@@ -13,7 +13,7 @@ resolvers += "Confluent Snapshots Maven Repo" at "https://s3-us-west-2.amazonaws
 resolvers += Resolver.mavenLocal
 
 val ksqlVersion = "5.4.0-SNAPSHOT"
-val kafkaVersion = "2.3.0"
+val kafkaVersion = "2.4.0"
 val scalaTestVersion = "3.0.8"
 val scalaMockVersion = "3.6.0"
 val wsApiVersion = "2.1.1"
