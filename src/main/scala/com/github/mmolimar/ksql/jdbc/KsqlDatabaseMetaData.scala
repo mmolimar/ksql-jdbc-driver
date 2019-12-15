@@ -483,7 +483,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
     val itTables = if (types.contains(TableTypes.TABLE.name)) {
       val tables = ksqlConnection.executeKsqlCommand("SHOW TABLES;")
-      if (tables.isErroneous) throw KsqlCommandError(s"Error showing tables: ${tables.getErrorMessage.getMessage}")
+      if (tables.isErroneous) throw KsqlCommandError(s"Error showing tables", Some(tables.getErrorMessage))
 
       tables.getResponse.asScala.flatMap(_.asInstanceOf[TablesList].getTables.asScala)
         .filter(tb => tablePattern.matcher(tb.getName.toUpperCase).matches)
@@ -495,7 +495,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
     val itStreams = if (types.contains(TableTypes.STREAM.name)) {
       val streams = ksqlConnection.executeKsqlCommand("SHOW STREAMS;")
-      if (streams.isErroneous) throw KsqlCommandError(s"Error showing streams: ${streams.getErrorMessage.getMessage}")
+      if (streams.isErroneous) throw KsqlCommandError(s"Error showing streams", Some(streams.getErrorMessage))
 
       streams.getResponse.asScala.flatMap(_.asInstanceOf[StreamsList].getStreams.asScala)
         .filter(tb => tablePattern.matcher(tb.getName.toUpperCase).matches)
@@ -696,8 +696,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     tables.toStream.foreach { table =>
       val tableName = table.getString(3)
       val describe = ksqlConnection.executeKsqlCommand(s"DESCRIBE $tableName;")
-      if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName: " +
-        describe.getErrorMessage.getMessage)
+      if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName", Some(describe.getErrorMessage))
 
       //generated fields from KSQL engine
       var defaultFields: Iterator[Seq[AnyRef]] = Iterator.empty

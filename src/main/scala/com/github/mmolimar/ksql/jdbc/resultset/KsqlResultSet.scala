@@ -5,7 +5,7 @@ import java.sql.{ResultSet, ResultSetMetaData}
 import java.util.{NoSuchElementException, Scanner, Iterator => JIterator}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
+import com.github.mmolimar.ksql.jdbc.{EmptyRow, HeaderField}
 import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.client.QueryStream
 import io.confluent.ksql.rest.entity.StreamedRow
@@ -69,17 +69,21 @@ class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
                         private[jdbc] val stream: KsqlStream, private[resultset] val maxRows: Long, val timeout: Long = 0)
   extends AbstractResultSet[StreamedRow](metadata, maxRows, stream) {
 
-  private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
-
   private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
+
+  private var maxBound = 0
 
   protected override def nextResult: Boolean = {
     def hasNext = if (stream.hasNext) {
       stream.next match {
-        case record if Option(record.getRow).isEmpty => false
-        case record =>
+        case record if record.getHeader.isPresent && !record.getRow.isPresent=>
+          maxBound = record.getHeader.get.getSchema.columns.size
+          next
+        case record if record.getRow.isPresent =>
+          maxBound = record.getRow.get.getColumns.size
           currentRow = Some(record)
           true
+        case _ => false
       }
     } else {
       false
@@ -94,11 +98,11 @@ class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
 
   override protected def closeInherit(): Unit = stream.close()
 
-  override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.get.getColumns.size)
+  override protected def getColumnBounds: (Int, Int) = (1, maxBound)
 
   override protected def getValue[T](columnIndex: Int): T = {
     currentRow.filter(_.getRow.isPresent).map(_.getRow.get.getColumnValue[T](columnIndex - 1))
-      .getOrElse(throw InvalidColumn())
+      .getOrElse(throw EmptyRow())
   }
 
   override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY

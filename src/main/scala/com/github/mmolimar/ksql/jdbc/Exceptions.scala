@@ -2,6 +2,8 @@ package com.github.mmolimar.ksql.jdbc
 
 import java.sql.{SQLException, SQLFeatureNotSupportedException}
 
+import io.confluent.ksql.rest.entity.KsqlErrorMessage
+
 sealed trait KsqlException {
 
   def message: String
@@ -37,14 +39,22 @@ case class InvalidValue(prop: String, value: String, override val cause: Throwab
 case class AlreadyClosed(override val message: String = "Already closed.",
                          override val cause: Throwable = None.orNull) extends KsqlException
 
-case class KsqlQueryError(override val message: String = "Error executing query.",
-                          override val cause: Throwable = None.orNull) extends KsqlException
+class KsqlError(val prefix: String, val ksqlMessage: Option[KsqlErrorMessage], val cause: Throwable) extends KsqlException {
+  override def message: String =
+    s"$prefix.${ksqlMessage.map(msg => s" Error code [${msg.getErrorCode}]. Message: ${msg.getMessage}").getOrElse("")}"
+}
 
-case class KsqlCommandError(override val message: String = "Error executing command.",
-                            override val cause: Throwable = None.orNull) extends KsqlException
+case class KsqlQueryError(override val prefix: String = "Error executing query.",
+                          override val ksqlMessage: Option[KsqlErrorMessage] = None,
+                          override val cause: Throwable = None.orNull) extends KsqlError(prefix, ksqlMessage, cause)
 
-case class KsqlEntityListError(override val message: String = "Invalid KSQL entity list.",
-                               override val cause: Throwable = None.orNull) extends KsqlException
+case class KsqlCommandError(override val prefix: String = "Error executing command.",
+                            override val ksqlMessage: Option[KsqlErrorMessage] = None,
+                            override val cause: Throwable = None.orNull) extends KsqlError(prefix, ksqlMessage, cause)
+
+case class KsqlEntityListError(override val prefix: String = "Invalid KSQL entity list.",
+                               override val ksqlMessage: Option[KsqlErrorMessage] = None,
+                               override val cause: Throwable = None.orNull) extends KsqlError(prefix, ksqlMessage, cause)
 
 case class InvalidColumn(override val message: String = "Invalid column.",
                          override val cause: Throwable = None.orNull) extends KsqlException

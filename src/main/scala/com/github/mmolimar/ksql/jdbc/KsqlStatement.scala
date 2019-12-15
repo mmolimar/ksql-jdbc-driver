@@ -145,7 +145,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
     currentResultSet = None
     val fixedSql = fixSql(sql)
     val stmt = Try(ksqlParser.parse(fixedSql)) match {
-      case Failure(e) => throw KsqlQueryError(s"Error parsing query '$fixedSql': ${e.getMessage}.", e)
+      case Failure(e) => throw KsqlQueryError(s"Error parsing query '$fixedSql': ${e.getMessage}.", None, e)
       case Success(s) if s.size() != 1 => throw KsqlQueryError("You have to execute just one query at a time. " +
         s"Number of queries sent: '${s.size}'.")
       case Success(s) => s.get(0)
@@ -160,9 +160,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
         ksqlClient.makeKsqlRequest(fixedSql).asInstanceOf[RestResponse[AnyRef]]
     }
     if (response.isErroneous) {
-      import scala.collection.JavaConverters._
-      throw KsqlQueryError(s"Error executing KSQL request: '$fixedSql'. " +
-        s"Error: ${response.getErrorMessage.getStackTrace.asScala.mkString("\n")}")
+      throw KsqlQueryError(s"Error executing KSQL request: '$fixedSql'", Some(response.getErrorMessage))
     }
 
     val resultSet: ResultSet = response.get match {
@@ -170,10 +168,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
         implicit lazy val queryDesc: QueryDescription = {
           val response = ksqlClient.makeKsqlRequest(s"EXPLAIN $fixedSql")
           if (response.isErroneous) {
-            import scala.collection.JavaConverters._
-            val stacktrace = response.getErrorMessage.getStackTrace.asScala.mkString("\n").trim
-            throw KsqlQueryError(s"Error getting metadata for query: '$fixedSql'. " +
-              s"Error message: ${response.getErrorMessage.getMessage}.${if (stacktrace.nonEmpty) s"Stacktrace: $stacktrace."}")
+            throw KsqlQueryError(s"Error getting metadata for query: '$fixedSql'", Some(response.getErrorMessage))
           } else if (response.getResponse.size != 1) {
             throw KsqlEntityListError("Invalid metadata for result set.")
           }

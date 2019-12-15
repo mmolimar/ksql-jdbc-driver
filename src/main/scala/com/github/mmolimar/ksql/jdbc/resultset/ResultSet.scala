@@ -424,7 +424,7 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
   override final def next: Boolean = closed match {
     case true => throw ResultSetError("Result set is already closed.")
-    case false if maxRows != 0 && rowCounter >= maxRows => false
+    case false if maxRows != 0 && rowCounter > maxRows => false
     case _ =>
       val result = nextResult
       rowCounter += 1
