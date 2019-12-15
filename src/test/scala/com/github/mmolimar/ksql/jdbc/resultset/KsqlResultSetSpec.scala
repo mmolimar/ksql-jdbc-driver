@@ -1,6 +1,8 @@
 package com.github.mmolimar.ksql.jdbc.resultset
 
+import java.io.InputStream
 import java.sql._
+import java.util.NoSuchElementException
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import com.github.mmolimar.ksql.jdbc.{DatabaseMetadataHeaders, HeaderField, TableTypes}
@@ -22,7 +24,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
 
         val resultSet = new IteratorResultSet[String](List.empty[HeaderField], 0, Iterator.empty)
         val methods = implementedMethods[IteratorResultSet[String]] ++ implementedMethods[AbstractResultSet[String]]
-        reflectMethods[IteratorResultSet[String]](methods, false, resultSet)
+        reflectMethods[IteratorResultSet[String]](methods, implemented = false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()
@@ -51,7 +53,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         }
         resultSet.next should be(false)
         resultSet.getWarnings should be(None.orNull)
-        resultSet.close
+        resultSet.close()
       }
     }
   }
@@ -77,7 +79,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
 
         val resultSet = new StreamedResultSet(resultSetMetadata, mock[KsqlQueryStream], 0)
         val methods = implementedMethods[StreamedResultSet] ++ implementedMethods[AbstractResultSet[StreamedRow]]
-        reflectMethods[StreamedResultSet](methods, false, resultSet)
+        reflectMethods[StreamedResultSet](methods, implemented = false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               try {
@@ -128,8 +130,8 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
           Seq("1", "1".getBytes, Boolean.box(false), Byte.box(1),
             Short.box(1), Int.box(1), Long.box(1L), Float.box(1.0f), Double.box(1.0d))
         )
-        expected.zipWithIndex.map { case (e, index) => {
-          resultSet.getString(index + 1) should be(e(0))
+        expected.zipWithIndex.map { case (e, index) =>
+          resultSet.getString(index + 1) should be(e.head)
           resultSet.getBytes(index + 1) should be(e(1))
           resultSet.getBoolean(index + 1) should be(e(2))
           resultSet.getByte(index + 1) should be(e(3))
@@ -139,7 +141,6 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
           resultSet.getFloat(index + 1) should be(e(7))
           resultSet.getDouble(index + 1) should be(e(8))
           resultSet.wasNull should be(false)
-        }
         }
 
         assertThrows[SQLException] {
@@ -176,14 +177,28 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         resultSet.next should be(false)
         resultSet.isFirst should be(false)
         resultSet.getWarnings should be(None.orNull)
-        resultSet.close
-        resultSet.close
+        resultSet.close()
+        resultSet.close()
         assertThrows[SQLException] {
           resultSet.next
         }
       }
 
       "work when reading from an input stream" in {
+        val ksqlInputStream = new KsqlInputStream(new InputStream {
+          override def read: Int = -1
+        })
+        ksqlInputStream.hasNext should be(false)
+        assertThrows[NoSuchElementException] {
+          ksqlInputStream.next
+        }
+        ksqlInputStream.close()
+        assertThrows[IllegalStateException] {
+          ksqlInputStream.hasNext
+        }
+        assertThrows[IllegalStateException] {
+          ksqlInputStream.next
+        }
 
         val mockedInputStream = mock[KsqlInputStream]
         inSequence {
@@ -211,8 +226,8 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
         resultSet.next should be(false)
         resultSet.isFirst should be(false)
         resultSet.getWarnings should be(None.orNull)
-        resultSet.close
-        resultSet.close
+        resultSet.close()
+        resultSet.close()
         assertThrows[SQLException] {
           resultSet.next
         }
@@ -227,7 +242,7 @@ class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with One
       "throw not supported exception if not supported" in {
 
         val resultSet = new ResultSetNotSupported
-        reflectMethods[ResultSetNotSupported](Seq.empty, false, resultSet)
+        reflectMethods[ResultSetNotSupported](Seq.empty, implemented = false, resultSet)
           .foreach(method => {
             assertThrows[SQLFeatureNotSupportedException] {
               method()

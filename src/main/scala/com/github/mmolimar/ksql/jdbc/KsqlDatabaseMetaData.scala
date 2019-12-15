@@ -479,7 +479,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     types.foreach(t => if (!TableTypes.tableTypes.map(_.name).contains(t)) throw UnknownTableType(s"Unknown table type $t"))
     val tablePattern = {
       if (Option(tableNamePattern).getOrElse("").equals("")) ".*" else tableNamePattern
-    }.toUpperCase.r.pattern
+      }.toUpperCase.r.pattern
 
     val itTables = if (types.contains(TableTypes.TABLE.name)) {
       val tables = ksqlConnection.executeKsqlCommand("SHOW TABLES;")
@@ -690,7 +690,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     val tables = getTables(catalog, schemaPattern, tableNamePattern, TableTypes.tableTypes.map(_.name).toArray)
     val columnPattern = {
       if (Option(columnNamePattern).getOrElse("").equals("")) ".*" else columnNamePattern
-    }.toUpperCase.r.pattern
+      }.toUpperCase.r.pattern
 
     var columns: Iterator[Seq[AnyRef]] = Iterator.empty
     tables.toStream.foreach { table =>
@@ -717,20 +717,20 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
       columns ++= describe.getResponse.asScala.map(_.asInstanceOf[SourceDescriptionEntity])
         .map(_.getSourceDescription)
         .filter(sd => columnPattern.matcher(sd.getName.toUpperCase).matches)
-        .map(sd => {
-          Seq[AnyRef]("", "", tableName, sd.getName, Int.box(DatabaseMetadataHeaders.mapDataType(sd.getType)), sd.getType,
-            Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10), Int.box(DatabaseMetaData.columnNullableUnknown),
-            "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(17), "", "", "", "",
-            Int.box(DatabaseMetadataHeaders.mapDataType(sd.getType)), "NO", "NO")
-
-        }).toIterator
+        .flatMap(_.getFields.asScala)
+        .map(f =>
+          Seq[AnyRef]("", "", tableName, f.getName, Int.box(DatabaseMetadataHeaders.mapDataType(f.getSchema.getType)),
+            f.getSchema.getType.toString, Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10),
+            Int.box(DatabaseMetaData.columnNullableUnknown), "", "", Int.box(-1), Int.box(-1), Int.box(32),
+            Int.box(17), "", "", "", "", Int.box(DatabaseMetadataHeaders.mapDataType(f.getSchema.getType)), "NO", "NO")
+        ).toIterator
     }
     new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, columns)
   }
 
   override def getNumericFunctions: String = availableFunctions(
     author = None,
-    types = Set("INT", "BIGINT", "DOUBLE")
+    types = Set("INT", "BIGINT", "DOUBLE", "DECIMAL")
   ).mkString(",")
 
   override def getStringFunctions: String = availableFunctions(

@@ -13,7 +13,7 @@ import io.confluent.ksql.rest.client.{MockableKsqlRestClient, QueryStream, RestR
 import io.confluent.ksql.rest.entity.{ExecutionPlan, KafkaTopicsList, QueryDescriptionEntity, QueryDescriptionList, _}
 import io.confluent.ksql.rest.util.EntityUtil
 import io.confluent.ksql.schema.ksql.types.SqlTypes
-import io.confluent.ksql.schema.ksql.{LogicalSchema, SqlBaseType}
+import io.confluent.ksql.schema.ksql.{LogicalSchema, SqlBaseType => KsqlType}
 import javax.ws.rs.core.Response
 import org.eclipse.jetty.http.HttpStatus.Code
 import org.scalamock.scalatest.MockFactory
@@ -97,14 +97,15 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
           new QueryId("id"),
           "select * from test;",
           List(
-            new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, List.empty.asJava, None.orNull)),
-            new FieldInfo("field2", new SchemaInfo(SqlBaseType.BIGINT, List.empty.asJava, None.orNull)),
-            new FieldInfo("field3", new SchemaInfo(SqlBaseType.DOUBLE, List.empty.asJava, None.orNull)),
-            new FieldInfo("field4", new SchemaInfo(SqlBaseType.BOOLEAN, List.empty.asJava, None.orNull)),
-            new FieldInfo("field5", new SchemaInfo(SqlBaseType.STRING, List.empty.asJava, None.orNull)),
-            new FieldInfo("field6", new SchemaInfo(SqlBaseType.MAP, List.empty.asJava, None.orNull)),
-            new FieldInfo("field7", new SchemaInfo(SqlBaseType.ARRAY, List.empty.asJava, None.orNull)),
-            new FieldInfo("field7", new SchemaInfo(SqlBaseType.STRUCT, List.empty.asJava, None.orNull))
+            new FieldInfo("field1", new SchemaInfo(KsqlType.INTEGER, List.empty.asJava, None.orNull)),
+            new FieldInfo("field2", new SchemaInfo(KsqlType.BIGINT, List.empty.asJava, None.orNull)),
+            new FieldInfo("field3", new SchemaInfo(KsqlType.DOUBLE, List.empty.asJava, None.orNull)),
+            new FieldInfo("field4", new SchemaInfo(KsqlType.DECIMAL, List.empty.asJava, None.orNull)),
+            new FieldInfo("field5", new SchemaInfo(KsqlType.BOOLEAN, List.empty.asJava, None.orNull)),
+            new FieldInfo("field6", new SchemaInfo(KsqlType.STRING, List.empty.asJava, None.orNull)),
+            new FieldInfo("field7", new SchemaInfo(KsqlType.MAP, List.empty.asJava, None.orNull)),
+            new FieldInfo("field8", new SchemaInfo(KsqlType.ARRAY, List.empty.asJava, None.orNull)),
+            new FieldInfo("field9", new SchemaInfo(KsqlType.STRUCT, List.empty.asJava, None.orNull))
 
           ).asJava,
           Set("test").asJava,
@@ -234,14 +235,15 @@ class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with One
             new QueryId("id"),
             "select * from test;",
             List(
-              new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, List.empty.asJava, None.orNull)),
-              new FieldInfo("field2", new SchemaInfo(SqlBaseType.BIGINT, List.empty.asJava, None.orNull)),
-              new FieldInfo("field3", new SchemaInfo(SqlBaseType.DOUBLE, List.empty.asJava, None.orNull)),
-              new FieldInfo("field4", new SchemaInfo(SqlBaseType.BOOLEAN, List.empty.asJava, None.orNull)),
-              new FieldInfo("field5", new SchemaInfo(SqlBaseType.STRING, List.empty.asJava, None.orNull)),
-              new FieldInfo("field6", new SchemaInfo(SqlBaseType.MAP, List.empty.asJava, None.orNull)),
-              new FieldInfo("field7", new SchemaInfo(SqlBaseType.ARRAY, List.empty.asJava, None.orNull)),
-              new FieldInfo("field7", new SchemaInfo(SqlBaseType.STRUCT, List.empty.asJava, None.orNull))
+              new FieldInfo("field1", new SchemaInfo(KsqlType.INTEGER, List.empty.asJava, None.orNull)),
+              new FieldInfo("field2", new SchemaInfo(KsqlType.BIGINT, List.empty.asJava, None.orNull)),
+              new FieldInfo("field3", new SchemaInfo(KsqlType.DOUBLE, List.empty.asJava, None.orNull)),
+              new FieldInfo("field4", new SchemaInfo(KsqlType.DECIMAL, List.empty.asJava, None.orNull)),
+              new FieldInfo("field5", new SchemaInfo(KsqlType.BOOLEAN, List.empty.asJava, None.orNull)),
+              new FieldInfo("field6", new SchemaInfo(KsqlType.STRING, List.empty.asJava, None.orNull)),
+              new FieldInfo("field7", new SchemaInfo(KsqlType.MAP, List.empty.asJava, None.orNull)),
+              new FieldInfo("field8", new SchemaInfo(KsqlType.ARRAY, List.empty.asJava, None.orNull)),
+              new FieldInfo("field9", new SchemaInfo(KsqlType.STRUCT, List.empty.asJava, None.orNull))
 
             ).asJava,
             Set("test").asJava,

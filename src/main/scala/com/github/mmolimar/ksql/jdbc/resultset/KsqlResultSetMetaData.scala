@@ -20,6 +20,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
       case Types.INTEGER => classOf[java.lang.Integer]
       case Types.BIGINT => classOf[java.lang.Long]
       case Types.DOUBLE => classOf[java.lang.Double]
+      case Types.DECIMAL => classOf[java.math.BigDecimal]
       case Types.BOOLEAN => classOf[java.lang.Boolean]
       case Types.VARCHAR => classOf[java.lang.String]
       case Types.JAVA_OBJECT => classOf[java.util.Map[AnyRef, AnyRef]]

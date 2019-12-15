@@ -1,6 +1,7 @@
 package com.github.mmolimar.ksql.jdbc
 
 import java.sql.Types
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 
 
 case class HeaderField(name: String, label: String, jdbcType: Int, length: Int, index: Int)
@@ -104,15 +105,16 @@ object DatabaseMetadataHeaders {
     HeaderField("NUM_PREC_RADIX", Types.INTEGER, 10)
   )
 
-  def mapDataType(dataType: String): Int = dataType match {
-    case "BOOL" | "BOOLEAN" => Types.BOOLEAN
-    case "INT" | "INTEGER" => Types.INTEGER
-    case "LONG" | "BIGINT" => Types.BIGINT
-    case "DOUBLE" => Types.DOUBLE
-    case "STRING" | "VARCHAR" => Types.VARCHAR
-    case dt if dt.startsWith("ARRAY") => Types.ARRAY
-    case dt if dt.startsWith("MAP") => Types.STRUCT
-    case _ => Types.OTHER
+  def mapDataType(ksqlType: KsqlType): Int = ksqlType match {
+    case KsqlType.INTEGER => Types.INTEGER
+    case KsqlType.BIGINT => Types.BIGINT
+    case KsqlType.DOUBLE => Types.DOUBLE
+    case KsqlType.DECIMAL => Types.DECIMAL
+    case KsqlType.BOOLEAN => Types.BOOLEAN
+    case KsqlType.STRING => Types.VARCHAR
+    case KsqlType.ARRAY => Types.ARRAY
+    case KsqlType.MAP => Types.JAVA_OBJECT
+    case KsqlType.STRUCT => Types.STRUCT
   }
 
 }
