@@ -1,28 +1,43 @@
-name := "ksql-jdbc-driver"
-
-version := "1.2-SNAPSHOT"
-
-initialize := {
-  assert(Integer.parseInt(sys.props("java.specification.version").split("\\.")(1)) >= 8, "Java 8 or above required")
-}
-
-scalaVersion := "2.11.11"
-
-resolvers += "Confluent Maven Repo" at "http://packages.confluent.io/maven/"
-resolvers += "Confluent Snapshots Maven Repo" at "https://s3-us-west-2.amazonaws.com/confluent-snapshots/"
-resolvers += Resolver.mavenLocal
-
+val projectVersion = "1.2.0-SNAPSHOT"
+val projectScalaVersion = "2.12.10"
 val ksqlVersion = "5.4.0-SNAPSHOT"
 val kafkaVersion = "2.4.0"
-val scalaTestVersion = "3.0.8"
+val scalaTestVersion = "3.1.0"
 val scalaMockVersion = "3.6.0"
 val wsApiVersion = "2.1.1"
 
-libraryDependencies += "io.confluent.ksql" % "ksql-rest-app" % ksqlVersion
-libraryDependencies += "org.apache.kafka" %% "kafka" % kafkaVersion % "test"
-libraryDependencies += "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
-libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % scalaMockVersion % "test"
-libraryDependencies += "javax.ws.rs" % "javax.ws.rs-api" % wsApiVersion artifacts Artifact("javax.ws.rs-api", "jar", "jar")
+val repos = Seq(
+  "Confluent Maven Repo" at "https://packages.confluent.io/maven/",
+  "Confluent Snapshots Maven Repo" at "https://s3-us-west-2.amazonaws.com/confluent-snapshots/",
+  Resolver.mavenLocal
+)
+
+val dependencies = Seq(
+  "io.confluent.ksql" % "ksql-rest-app" % ksqlVersion,
+  "org.apache.kafka" %% "kafka" % kafkaVersion % "test",
+  "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
+  "org.scalamock" %% "scalamock-scalatest-support" % scalaMockVersion % "test",
+  "javax.ws.rs" % "javax.ws.rs-api" % wsApiVersion artifacts Artifact("javax.ws.rs-api", "jar", "jar")
+)
+
+val common = Seq(
+  organization := "com.github.mmolimar",
+  name := "ksql-jdbc-driver",
+  version := projectVersion,
+  scalaVersion := projectScalaVersion,
+  crossScalaVersions := Seq("2.11.12", projectScalaVersion),
+  initialize := assert(Integer.parseInt(sys.props("java.specification.version").split("\\.")(1)) >= 8, "Java 8 or above required"),
+  resolvers ++= repos,
+  libraryDependencies ++= dependencies
+)
+
+lazy val root = project.in(file("."))
+  .configs(Configs.all: _*)
+  .settings(
+    common,
+    Tests.settings
+  )
+  .enablePlugins(ScoverageSbtPlugin, CoverallsPlugin, AssemblyPlugin)
 
 assemblyMergeStrategy in assembly := {
   case PathList("javax", "inject", _*) => MergeStrategy.first
