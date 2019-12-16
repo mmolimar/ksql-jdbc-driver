@@ -7,11 +7,12 @@ import io.confluent.ksql.rest.client.{KsqlRestClient, MockableKsqlRestClient, Re
 import io.confluent.ksql.rest.entity.{KsqlErrorMessage, ServerInfo}
 import org.eclipse.jetty.http.HttpStatus.Code
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
-class KsqlDriverSpec extends WordSpec with Matchers with MockFactory {
+class KsqlDriverSpec extends AnyWordSpec with Matchers with MockFactory {
 
   "A KsqlDriver" when {
     val driver = new KsqlDriver

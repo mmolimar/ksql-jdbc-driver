@@ -10,7 +10,7 @@ import kafka.utils.Logging
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.scalamock.scalatest.MockFactory
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailablePort) extends Logging with MockFactory {
 
@@ -23,14 +23,14 @@ class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailableP
     "ksql.command.consumer.auto.offset.reset" -> "earliest",
     "ksql.command.consumer.session.timeout.ms" -> "10000",
     "ksql.command.topic.suffix" -> "commands"
-  ))
+  ).asJava)
 
   lazy val ksqlEngine: KsqlRestApplication = {
     import io.confluent.ksql.rest.server.mock.ksqlRestApplication
 
     val versionCheckerAgent = mock[VersionCheckerAgent]
-    (versionCheckerAgent.start _).expects(*, *).returns().anyNumberOfTimes
-    (versionCheckerAgent.updateLastRequestTime _).expects().returns().anyNumberOfTimes
+    (versionCheckerAgent.start _).expects(*, *).returns((): Unit).anyNumberOfTimes
+    (versionCheckerAgent.updateLastRequestTime _).expects().returns((): Unit).anyNumberOfTimes
     ksqlRestApplication(config, versionCheckerAgent)
   }
 
@@ -48,7 +48,7 @@ class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailableP
 
     TestUtils.swallow(ksqlEngine.stop())
 
-    info("Shutted down embedded KSQL engine")
+    info("Stopped embedded KSQL engine")
   }
 
   def getPort: Int = port

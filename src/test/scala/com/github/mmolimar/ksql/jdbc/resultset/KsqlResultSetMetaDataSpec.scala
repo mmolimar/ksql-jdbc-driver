@@ -6,9 +6,11 @@ import com.github.mmolimar.ksql.jdbc.HeaderField
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
 import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+import org.scalatest.OneInstancePerTest
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class KsqlResultSetMetaDataSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
+class KsqlResultSetMetaDataSpec extends AnyWordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A KsqlResultSetMetaData" when {
 

@@ -2,6 +2,8 @@ package com.github.mmolimar.ksql
 
 import java.sql.ResultSet
 
+import scala.language.implicitConversions
+
 package object jdbc {
 
   object implicits {

@@ -3,7 +3,7 @@ package io.confluent.ksql.rest.client
 import java.util.Collections.emptyMap
 import java.util.Optional
 
-import _root_.io.confluent.ksql.properties.LocalProperties
+import io.confluent.ksql.properties.LocalProperties
 
 class MockableKsqlRestClient extends KsqlRestClient(
   new KsqlClient(

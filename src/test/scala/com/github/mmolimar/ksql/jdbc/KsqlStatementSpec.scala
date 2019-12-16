@@ -17,12 +17,14 @@ import io.confluent.ksql.schema.ksql.{LogicalSchema, SqlBaseType => KsqlType}
 import javax.ws.rs.core.Response
 import org.eclipse.jetty.http.HttpStatus.Code
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+import org.scalatest.OneInstancePerTest
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
 
-class KsqlStatementSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
+class KsqlStatementSpec extends AnyWordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A KsqlStatement" when {
 

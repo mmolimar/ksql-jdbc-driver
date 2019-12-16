@@ -4,6 +4,8 @@ import java.sql.{SQLException, SQLFeatureNotSupportedException}
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage
 
+import scala.language.implicitConversions
+
 sealed trait KsqlException {
 
   def message: String

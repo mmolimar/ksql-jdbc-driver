@@ -7,10 +7,11 @@ import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.resultset.{StreamedResultSet, _}
 import io.confluent.ksql.parser.{DefaultKsqlParser, KsqlParser}
 import io.confluent.ksql.rest.client.{KsqlRestClient, QueryStream, RestResponse}
-import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 import io.confluent.ksql.rest.entity._
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 
 import scala.collection.JavaConverters._
+import scala.language.implicitConversions
 import scala.util.{Failure, Success, Try}
 
 private object KsqlStatement {
@@ -174,7 +175,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
             throw KsqlEntityListError("Invalid metadata for result set.")
           }
           response.getResponse.get(0).asInstanceOf[QueryDescriptionEntity]
-        }.getQueryDescription
+          }.getQueryDescription
         e
       case e: KsqlEntityList => e.asInstanceOf[KsqlEntityList]
       case e: InputStream => e.asInstanceOf[InputStream]

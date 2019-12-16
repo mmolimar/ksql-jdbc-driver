@@ -10,10 +10,11 @@ import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.client.QueryStream
 import io.confluent.ksql.rest.entity.StreamedRow
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 
@@ -67,7 +68,7 @@ private[jdbc] class KsqlInputStream(stream: InputStream) extends KsqlStream {
 
 class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
                         private[jdbc] val stream: KsqlStream, private[resultset] val maxRows: Long, val timeout: Long = 0)
-  extends AbstractResultSet[StreamedRow](metadata, maxRows, stream) {
+  extends AbstractResultSet[StreamedRow](metadata, maxRows, stream.asScala) {
 
   private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
 
@@ -76,7 +77,7 @@ class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
   protected override def nextResult: Boolean = {
     def hasNext = if (stream.hasNext) {
       stream.next match {
-        case record if record.getHeader.isPresent && !record.getRow.isPresent=>
+        case record if record.getHeader.isPresent && !record.getRow.isPresent =>
           maxBound = record.getHeader.get.getSchema.columns.size
           next
         case record if record.getRow.isPresent =>

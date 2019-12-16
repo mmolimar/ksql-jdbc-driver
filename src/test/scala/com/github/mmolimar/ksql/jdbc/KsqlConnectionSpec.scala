@@ -8,9 +8,10 @@ import io.confluent.ksql.rest.client.{KsqlRestClient, MockableKsqlRestClient, Re
 import io.confluent.ksql.rest.entity._
 import org.eclipse.jetty.http.HttpStatus.Code
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
+class KsqlConnectionSpec extends AnyWordSpec with Matchers with MockFactory {
 
   "A KsqlConnection" when {
 

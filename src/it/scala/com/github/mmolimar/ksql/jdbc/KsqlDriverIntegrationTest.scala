@@ -9,9 +9,11 @@ import com.github.mmolimar.ksql.jdbc.embedded.{EmbeddedKafkaCluster, EmbeddedKsq
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils
 import io.confluent.ksql.util.KsqlConstants.ESCAPE
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class KsqlDriverIntegrationTest extends WordSpec with Matchers with BeforeAndAfterAll {
+class KsqlDriverIntegrationTest extends AnyWordSpec with Matchers with BeforeAndAfterAll {
 
   val zkServer = new EmbeddedZookeeperServer
   val kafkaCluster = new EmbeddedKafkaCluster(zkServer.getConnection)

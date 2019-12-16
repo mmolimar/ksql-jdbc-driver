@@ -9,12 +9,14 @@ import com.github.mmolimar.ksql.jdbc.{DatabaseMetadataHeaders, HeaderField, Tabl
 import io.confluent.ksql.GenericRow
 import io.confluent.ksql.rest.entity.StreamedRow
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, OneInstancePerTest, WordSpec}
+import org.scalatest.OneInstancePerTest
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 import scala.collection.JavaConverters._
 
 
-class KsqlResultSetSpec extends WordSpec with Matchers with MockFactory with OneInstancePerTest {
+class KsqlResultSetSpec extends AnyWordSpec with Matchers with MockFactory with OneInstancePerTest {
 
   "A IteratorResultSet" when {
 
