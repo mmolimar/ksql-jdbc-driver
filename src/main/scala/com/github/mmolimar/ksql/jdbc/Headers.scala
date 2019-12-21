@@ -1,6 +1,7 @@
 package com.github.mmolimar.ksql.jdbc
 
 import java.sql.Types
+
 import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 
 
@@ -129,6 +130,39 @@ object KsqlEntityHeaders {
     HeaderField("COMMAND_STATUS_MESSAGE", Types.VARCHAR, 128)
   )
 
+  val connectorDescriptionEntity: List[HeaderField] = List(
+    HeaderField("CONNECTOR_DESCRIPTION_CLASS", Types.VARCHAR, 128),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_NAME", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_TYPE", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_CONNECTOR_STATE", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_CONNECTOR_TRACE", Types.VARCHAR, 128),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_CONNECTOR_WORKER_ID", Types.VARCHAR, 8),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_TASKS_INFO", Types.VARCHAR, 512)
+  ) ++ sourceDescriptionEntity ++ List(
+    HeaderField("CONNECTOR_DESCRIPTION_TOPICS", Types.VARCHAR, 64)
+  )
+
+  val connectorListEntity = List(
+    HeaderField("CONNECTOR_NAME", Types.VARCHAR, 64),
+    HeaderField("CONNECTOR_TYPE", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_CLASS_NAME", Types.VARCHAR, 128)
+  )
+
+  val createConnectorEntity = List(
+    HeaderField("CREATE_CONNECTOR_INFO_NAME", Types.VARCHAR, 64),
+    HeaderField("CREATE_CONNECTOR_INFO_TYPE", Types.VARCHAR, 16),
+    HeaderField("CREATE_CONNECTOR_INFO_TASKS", Types.VARCHAR, 512),
+    HeaderField("CREATE_CONNECTOR_INFO_CONFIGS", Types.VARCHAR, 512)
+  )
+
+  val dropConnectorEntity = List(
+    HeaderField("DROP_CONNECTOR_NAME", Types.VARCHAR, 64)
+  )
+
+  val errorEntity = List(
+    HeaderField("ERROR_MESSAGE", Types.VARCHAR, 512)
+  )
+
   val executionPlanEntity = List(
     HeaderField("EXECUTION_PLAN", Types.VARCHAR, 255)
   )
@@ -220,6 +254,11 @@ object KsqlEntityHeaders {
     HeaderField("TABLE_TOPIC", Types.VARCHAR, 16),
     HeaderField("TABLE_FORMAT", Types.VARCHAR, 16),
     HeaderField("TABLE_WINDOWS", Types.BOOLEAN, 5)
+  )
+
+  val typesListEntity = List(
+    HeaderField("TYPE", Types.VARCHAR, 16),
+    HeaderField("TYPE_NAME", Types.VARCHAR, 16)
   )
 
   val topicDescriptionEntity = List(
