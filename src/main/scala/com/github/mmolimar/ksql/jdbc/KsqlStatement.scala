@@ -387,13 +387,6 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           s.getFormat
         )).toIterator
         new IteratorResultSet[String](streamsListEntity, maxRows, rows)
-      case e: StreamsList =>
-        val rows = e.getStreams.asScala.map(s => Seq(
-          s.getName,
-          s.getTopic,
-          s.getFormat
-        )).toIterator
-        new IteratorResultSet[String](streamsListEntity, maxRows, rows)
       case e: TablesList =>
         val rows = e.getTables.asScala.map(t => Seq(
           t.getName,

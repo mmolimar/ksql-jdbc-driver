@@ -130,6 +130,19 @@ object KsqlEntityHeaders {
     HeaderField("COMMAND_STATUS_MESSAGE", Types.VARCHAR, 128)
   )
 
+  val sourceDescriptionEntity = List(
+    HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TOPIC", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_PARTITIONS", Types.INTEGER, 16),
+    HeaderField("SOURCE_DESCRIPTION_STATISTICS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_ERROR_STATS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
+  )
+
   val connectorDescriptionEntity: List[HeaderField] = List(
     HeaderField("CONNECTOR_DESCRIPTION_CLASS", Types.VARCHAR, 128),
     HeaderField("CONNECTOR_DESCRIPTION_STATUS_NAME", Types.VARCHAR, 16),
@@ -227,19 +240,6 @@ object KsqlEntityHeaders {
   )
 
   val queryDescriptionEntityList: List[HeaderField] = queryDescriptionEntity
-
-  val sourceDescriptionEntity = List(
-    HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_NAME", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_TOPIC", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_TYPE", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
-    HeaderField("SOURCE_DESCRIPTION_PARTITIONS", Types.INTEGER, 16),
-    HeaderField("SOURCE_DESCRIPTION_STATISTICS", Types.VARCHAR, 128),
-    HeaderField("SOURCE_DESCRIPTION_ERROR_STATS", Types.VARCHAR, 128),
-    HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
-  )
 
   val sourceDescriptionEntityList: List[HeaderField] = sourceDescriptionEntity
 
