@@ -15,6 +15,7 @@ import io.confluent.ksql.rest.util.EntityUtil
 import io.confluent.ksql.schema.ksql.types.SqlTypes
 import io.confluent.ksql.schema.ksql.{LogicalSchema, SqlBaseType => KsqlType}
 import javax.ws.rs.core.Response
+import org.apache.kafka.connect.runtime.rest.entities.{ConnectorInfo, ConnectorStateInfo, ConnectorType}
 import org.eclipse.jetty.http.HttpStatus.Code
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.OneInstancePerTest
@@ -202,9 +203,52 @@ class KsqlStatementSpec extends AnyWordSpec with Matchers with MockFactory with 
           }
         }
 
-        val commandStatus = new CommandStatusEntity("REGISTER TOPIC TEST WITH (KAFKA_TOPIC='test', VALUE_FORMAT='json')",
+        val schema = LogicalSchema.builder.valueColumn(ColumnName.of("key"), SqlTypes.BIGINT).build
+        val commandStatus = new CommandStatusEntity("CREATE STREAM TEST AS SELECT * FROM test",
           CommandId.fromString("topic/1/create"),
           new CommandStatus(CommandStatus.Status.SUCCESS, "Success Message"), null)
+        val sourceDesc = new SourceDescription(
+          "datasource",
+          List(new RunningQuery("read query", Set("sink1").asJava, new QueryId("readId"))).asJava,
+          List(new RunningQuery("read query", Set("sink1").asJava, new QueryId("readId"))).asJava,
+          EntityUtil.buildSourceSchemaEntity(schema, false),
+          DataSourceType.KTABLE.getKsqlType,
+          "key",
+          "2000-01-01",
+          "stats",
+          "errors",
+          true,
+          "avro",
+          "kadka-topic",
+          2,
+          1
+        )
+        val connectorDesc = new ConnectorDescription(
+          "DESCRIBE CONNECTOR `test-connector`",
+          "test.Connector",
+          new ConnectorStateInfo(
+            "name",
+            new ConnectorStateInfo.ConnectorState("state", "worker", "msg"),
+            List(new ConnectorStateInfo.TaskState(0, "task", "worker", "task_msg")).asJava,
+            ConnectorType.SOURCE
+          ),
+          List(sourceDesc).asJava,
+          List("test-topic").asJava,
+          List.empty.asJava)
+        val connectorList = new ConnectorList(
+          "SHOW CONNECTORS",
+          List.empty.asJava,
+          List(new SimpleConnectorInfo("testConnector", ConnectorType.SOURCE, "ConnectorClassname")).asJava
+        )
+        val createConnector = new CreateConnectorEntity(
+          "CREATE SOURCE CONNECTOR test WITH ('prop1'='value')",
+          new ConnectorInfo("connector",
+            Map.empty[String, String].asJava,
+            List.empty.asJava,
+            ConnectorType.SOURCE)
+        )
+        val dropConnector = new DropConnectorEntity("DROP CONNECTOR `test-connector`", "TestConnector")
+        val error = new ErrorEntity("SHOW CONNECTORS", "Error message")
         val executionPlan = new ExecutionPlan("DESCRIBE test")
         val functionDescriptionList = new FunctionDescriptionList("DESCRIBE FUNCTION test;",
           "TEST", "Description", "author", "version", "path",
@@ -220,6 +264,10 @@ class KsqlStatementSpec extends AnyWordSpec with Matchers with MockFactory with 
         val kafkaTopicsList = new KafkaTopicsList(
           "SHOW TOPICS;",
           List(new KafkaTopicInfo("test", List(Int.box(1)).asJava)).asJava
+        )
+        val kafkaTopicsListExt = new KafkaTopicsListExtended(
+          "LIST TOPICS EXTENDED",
+          List(new KafkaTopicInfoExtended("test", List(Int.box(1)).asJava, 5, 10)).asJava
         )
         val propertiesList = new PropertiesList(
           "list properties;",
@@ -260,25 +308,9 @@ class KsqlStatementSpec extends AnyWordSpec with Matchers with MockFactory with 
           "EXPLAIN select * from test;",
           List(queryDescription.getQueryDescription).asJava
         )
-        val schema = LogicalSchema.builder.valueColumn(ColumnName.of("key"), SqlTypes.BIGINT).build
         val sourceDescEntity = new SourceDescriptionEntity(
           "DESCRIBE TEST;",
-          new SourceDescription(
-            "datasource",
-            List(new RunningQuery("read query", Set("sink1").asJava, new QueryId("readId"))).asJava,
-            List(new RunningQuery("read query", Set("sink1").asJava, new QueryId("readId"))).asJava,
-            EntityUtil.buildSourceSchemaEntity(schema, false),
-            DataSourceType.KTABLE.getKsqlType,
-            "key",
-            "2000-01-01",
-            "stats",
-            "errors",
-            true,
-            "avro",
-            "kadka-topic",
-            2,
-            1
-          ),
+          sourceDesc,
           emptyList[KsqlWarning]
         )
         val sourceDescList = new SourceDescriptionList(
@@ -286,25 +318,36 @@ class KsqlStatementSpec extends AnyWordSpec with Matchers with MockFactory with 
           List(sourceDescEntity.getSourceDescription).asJava,
           emptyList[KsqlWarning]
         )
-        val streams = new StreamsList("SHOW STREAMS", List(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO")).asJava)
-        val tables = new TablesList("SHOW TABLES", List(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false)).asJava)
+        val streamsList = new StreamsList("SHOW STREAMS", List(new SourceInfo.Stream("TestStream", "TestTopic", "AVRO")).asJava)
+        val tablesList = new TablesList("SHOW TABLES", List(new SourceInfo.Table("TestTable", "TestTopic", "JSON", false)).asJava)
         val topicDesc = new TopicDescription("DESCRIBE TEST", "TestTopic", "TestTopic", "AVRO", "schema")
+        val types = new TypeList(
+          "SHOW TYPES",
+          Map("typeTest" -> new SchemaInfo(KsqlType.ARRAY, List.empty.asJava, None.orNull)).asJava
+        )
 
         val commands = Seq(
-          //(commandStatus, commandStatusEntity),
+          (commandStatus, commandStatusEntity),
+          (connectorDesc, connectorDescriptionEntity),
+          (connectorList, connectorListEntity),
+          (createConnector, createConnectorEntity),
+          (dropConnector, dropConnectorEntity),
+          (error, errorEntity),
           (executionPlan, executionPlanEntity),
           (functionDescriptionList, functionDescriptionListEntity),
           (functionNameList, functionNameListEntity),
           (kafkaTopicsList, kafkaTopicsListEntity),
+          (kafkaTopicsListExt, kafkaTopicsListExtendedEntity),
           (propertiesList, propertiesListEntity),
           (queries, queriesEntity),
           (queryDescription, queryDescriptionEntity),
           (queryDescriptionList, queryDescriptionEntityList),
           (sourceDescEntity, sourceDescriptionEntity),
           (sourceDescList, sourceDescriptionEntityList),
-          (streams, streamsListEntity),
-          (tables, tablesListEntity),
-          (topicDesc, topicDescriptionEntity)
+          (streamsList, streamsListEntity),
+          (tablesList, tablesListEntity),
+          (topicDesc, topicDescriptionEntity),
+          (types, typesListEntity),
         )
         commands.foreach(c => validateCommand(c._1, c._2))
       }
