@@ -9,19 +9,18 @@ import io.confluent.rest.RestConfig
 import kafka.utils.Logging
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.scalamock.scalatest.MockFactory
+import io.confluent.ksql.util.KsqlConfig
 
 import scala.collection.JavaConverters._
 
-class EmbeddedKsqlEngine(brokerList: String, port: Int = TestUtils.getAvailablePort) extends Logging with MockFactory {
+class EmbeddedKsqlEngine(port: Int = TestUtils.getAvailablePort, brokerList: String, connectUrl: String) extends Logging with MockFactory {
 
   private val config = new KsqlRestConfig(Map(
-    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokerList,
     RestConfig.LISTENERS_CONFIG -> s"http://localhost:$port",
-    "ksql.cluster.id" -> "ksql-jdbc",
-    "application.id" -> "test",
-    "ksql.command.consumer.client.id" -> "ksql-jdbc-driver",
-    "ksql.command.consumer.auto.offset.reset" -> "earliest",
-    "ksql.command.consumer.session.timeout.ms" -> "10000",
+    ProducerConfig.BOOTSTRAP_SERVERS_CONFIG -> brokerList,
+    KsqlConfig.CONNECT_URL_PROPERTY -> connectUrl,
+    "ksql.service.id" -> "ksql-jdbc",
+    "ksql.streams.auto.offset.reset" -> "latest",
     "ksql.command.topic.suffix" -> "commands"
   ).asJava)
 
