@@ -443,10 +443,14 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet =
     new IteratorResultSet(List.empty[HeaderField], 0, Iterator.empty)
 
-  override def getSQLKeywords: String = Seq("CREATE STREAM", "DESCRIBE", "DESCRIBE FUNCTION", "EXPLAIN",
-    "DROP STREAM", "DROP TABLE", "PRINT", "CAST", "SHOW FUNCTIONS", "LIST FUNCTIONS",
-    "SHOW TOPICS", "SHOW FUNCTIONS", "SHOW STREAMS", "SHOW TABLES", "SHOW QUERIES", "SHOW PROPERTIES",
-    "TERMINATE").mkString(",")
+  override def getSQLKeywords: String = Seq(
+    "CREATE", "CREATE TABLE", "CREATE STREAM", "CREATE TYPE", "CREATE SOURCE CONNECTOR", "CREATE SINK CONNECTOR",
+    "DESCRIBE", "DESCRIBE EXTENDED", "DESCRIBE CONNECTOR", "DESCRIBE FUNCTION",
+    "DROP", "DROP TABLE", "DROP STREAM", "DROP TYPE", "DROP CONNECTOR",
+    "SHOW", "SHOW TABLES", "SHOW STREAMS", "SHOW TYPES", "SHOW CONNECTORS", "SHOW FUNCTIONS",
+    "SHOW PROPERTIES", "SHOW QUERIES", "SHOW TOPICS", "SHOW TOPICS EXTENDED",
+    "EXPLAIN", "PRINT", "CAST", "LIST FUNCTIONS", "TERMINATE"
+  ).mkString(",")
 
   override def getMaxStatements: Int = 0
 
@@ -454,7 +458,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getURL: String = ksqlConnection.values.jdbcUrl
 
-  override def isReadOnly: Boolean = true
+  override def isReadOnly: Boolean = false
 
   override def getProcedures(catalog: String, schemaPattern: String, procedureNamePattern: String): ResultSet = {
     new IteratorResultSet(DatabaseMetadataHeaders.procedures, 0, Iterator.empty)

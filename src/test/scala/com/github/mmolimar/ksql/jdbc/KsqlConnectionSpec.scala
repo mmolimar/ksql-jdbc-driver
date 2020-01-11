@@ -48,7 +48,7 @@ class KsqlConnectionSpec extends AnyWordSpec with Matchers with MockFactory {
           ksqlConnection.setClientInfo("", "")
         }
 
-        ksqlConnection.isReadOnly should be(true)
+        ksqlConnection.isReadOnly should be(false)
 
         (mockKsqlRestClient.makeStatusRequest _: () => RestResponse[CommandStatuses]).expects
           .returns(RestResponse.successful[CommandStatuses]

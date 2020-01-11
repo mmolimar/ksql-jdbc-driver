@@ -172,7 +172,7 @@ class KsqlDatabaseMetaDataSpec extends AnyWordSpec with Matchers with MockFactor
 
         metadata.getURL should be("jdbc:ksql://localhost:8080")
         metadata.getTypeInfo.getMetaData.getColumnCount should be(18)
-        metadata.getSQLKeywords.split(",").length should be(17)
+        metadata.getSQLKeywords.split(",").length should be(30)
         metadata.getMaxStatements should be(0)
         metadata.getMaxStatementLength should be(0)
         metadata.getProcedures(None.orNull, None.orNull, None.orNull).next should be(false)

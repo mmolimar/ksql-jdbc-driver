@@ -78,7 +78,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
 
   override def isSearchable(column: Int): Boolean = true
 
-  override def isReadOnly(column: Int): Boolean = true
+  override def isReadOnly(column: Int): Boolean = false
 
   override def isWritable(column: Int): Boolean = !isReadOnly(column)
 

@@ -221,7 +221,7 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
     properties.asScala.foreach(entry => setClientInfo(entry._1, entry._2))
   }
 
-  override def isReadOnly: Boolean = true
+  override def isReadOnly: Boolean = false
 
   override def getCatalog: String = None.orNull
 

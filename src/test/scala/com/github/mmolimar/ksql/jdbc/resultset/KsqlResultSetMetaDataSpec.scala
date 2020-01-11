@@ -110,9 +110,9 @@ class KsqlResultSetMetaDataSpec extends AnyWordSpec with Matchers with MockFacto
         resultSet.isCurrency(6) should be(false)
         resultSet.isAutoIncrement(6) should be(false)
         resultSet.isSearchable(6) should be(true)
-        resultSet.isReadOnly(6) should be(true)
-        resultSet.isWritable(6) should be(false)
-        resultSet.isDefinitelyWritable(6) should be(false)
+        resultSet.isReadOnly(6) should be(false)
+        resultSet.isWritable(6) should be(true)
+        resultSet.isDefinitelyWritable(6) should be(true)
         resultSet.isSigned(2) should be(true)
         resultSet.isSigned(6) should be(false)
       }
