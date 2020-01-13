@@ -347,7 +347,7 @@ class KsqlStatementSpec extends AnyWordSpec with Matchers with MockFactory with 
           (streamsList, streamsListEntity),
           (tablesList, tablesListEntity),
           (topicDesc, topicDescriptionEntity),
-          (types, typesListEntity),
+          (types, typesListEntity)
         )
         commands.foreach(c => validateCommand(c._1, c._2))
       }

@@ -339,7 +339,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
           t.getName,
           t.getReplicaInfo.asScala.mkString(", "),
           t.getConsumerCount,
-          t.getConsumerGroupCount,
+          t.getConsumerGroupCount
         )).toIterator
         new IteratorResultSet[Any](kafkaTopicsListExtendedEntity, maxRows, rows)
       case e: PropertiesList =>

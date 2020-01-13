@@ -26,7 +26,6 @@ val common = Seq(
   version := projectVersion,
   scalaVersion := projectScalaVersion,
   crossScalaVersions := Seq("2.11.12", projectScalaVersion),
-  initialize := assert(Integer.parseInt(sys.props("java.specification.version").split("\\.")(1)) >= 8, "Java 8 or above required"),
   resolvers ++= repos,
   libraryDependencies ++= dependencies
 )
