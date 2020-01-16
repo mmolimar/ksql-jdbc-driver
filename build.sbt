@@ -1,6 +1,6 @@
 val projectVersion = "1.2.0-SNAPSHOT"
 val projectScalaVersion = "2.12.10"
-val ksqlVersion = "5.4.0-SNAPSHOT"
+val ksqlVersion = "5.4.0"
 val kafkaVersion = "2.4.0"
 val scalaTestVersion = "3.1.0"
 val scalaMockVersion = "3.6.0"
