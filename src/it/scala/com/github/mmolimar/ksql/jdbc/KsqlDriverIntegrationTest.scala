@@ -50,6 +50,12 @@ class KsqlDriverIntegrationTest extends AnyWordSpec with Matchers with BeforeAnd
         resultSet.close()
       }
 
+      "insert records into the table" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"INSERT INTO $table (FIELD1, FIELD2, FIELD3) VALUES (123, 45.4, 'lorem ipsum')")
+        resultSet.next should be(false)
+        resultSet.close()
+      }
+
       "list the table already created" in {
         val resultSet = ksqlConnection.createStatement.executeQuery(s"SHOW TABLES")
         resultSet.next should be(true)
@@ -222,6 +228,12 @@ class KsqlDriverIntegrationTest extends AnyWordSpec with Matchers with BeforeAnd
         resultSet.getString(commandStatusEntity(3).name) should be("CREATE")
         resultSet.getString(commandStatusEntity(4).name) should be("SUCCESS")
         resultSet.getString(commandStatusEntity(5).name) should be("Stream created")
+        resultSet.next should be(false)
+        resultSet.close()
+      }
+
+      "insert records into the stream" in {
+        val resultSet = ksqlConnection.createStatement.executeQuery(s"INSERT INTO $stream (FIELD1, FIELD2, FIELD3) VALUES (123, 45.4, 'lorem ipsum')")
         resultSet.next should be(false)
         resultSet.close()
       }

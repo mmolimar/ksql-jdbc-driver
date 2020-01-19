@@ -24,7 +24,7 @@ object TestUtils extends Logging {
 
   private val RANDOM: Random = new Random
 
-  def constructTempDir(dirPrefix: String): File = {
+  def makeTempDir(dirPrefix: String): File = {
     val file: File = new File(System.getProperty("java.io.tmpdir"), dirPrefix + RANDOM.nextInt(10000000))
     if (!file.mkdirs) throw new RuntimeException("could not create temp directory: " + file.getAbsolutePath)
     file.deleteOnExit()
@@ -62,7 +62,6 @@ object TestUtils extends Logging {
       ss.socket.setReuseAddress(false)
       ss.socket.bind(new InetSocketAddress(host, port))
       true
-
     } catch {
       case _: IOException => false
     }
@@ -181,8 +180,6 @@ object TestUtils extends Logging {
           } catch {
             case t: InvocationTargetException => throw t.getCause
           }
-
       })
   }
-
 }

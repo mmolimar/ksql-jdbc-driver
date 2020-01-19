@@ -10,8 +10,8 @@ import org.apache.zookeeper.server.{ServerCnxnFactory, ZooKeeperServer}
 class EmbeddedZookeeperServer(private val port: Int = TestUtils.getAvailablePort,
                               private val tickTime: Int = 500) extends Logging {
 
-  private val snapshotDir: File = TestUtils.constructTempDir("snapshot")
-  private val logDir: File = TestUtils.constructTempDir("log")
+  private val snapshotDir: File = TestUtils.makeTempDir("snapshot")
+  private val logDir: File = TestUtils.makeTempDir("log")
   private val zookeeper: ZooKeeperServer = new ZooKeeperServer(snapshotDir, logDir, tickTime)
   private val factory: ServerCnxnFactory = ServerCnxnFactory.createFactory(new InetSocketAddress("localhost", port), 0)
 
