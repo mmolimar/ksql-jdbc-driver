@@ -40,6 +40,7 @@ lazy val root = project.in(file("."))
 
 assemblyMergeStrategy in assembly := {
   case PathList("javax", "inject", _*) => MergeStrategy.first
+  case PathList("javax", "annotation", _*) => MergeStrategy.first
   case "module-info.class" => MergeStrategy.discard
   case "log4j.properties" => MergeStrategy.discard
   case x =>
