@@ -1,7 +1,7 @@
 package com.github.mmolimar.ksql.jdbc
 
 import java.io.InputStream
-import java.sql.{ResultSet, SQLException, SQLFeatureNotSupportedException}
+import java.sql.{Connection, ResultSet, SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
@@ -180,7 +180,12 @@ class KsqlDatabaseMetaDataSpec extends AnyWordSpec with Matchers with MockFactor
         metadata.getSearchStringEscape should be("%")
         metadata.getExtraNameCharacters should be("#@")
         metadata.getMaxConnections should be(0)
-        metadata.getIdentifierQuoteString should be(" ")
+        metadata.getMaxTableNameLength should be(0)
+        metadata.getMaxTablesInSelect should be(0)
+        metadata.getMaxUserNameLength should be(0)
+        metadata.getMaxUserNameLength should be(0)
+        metadata.getDefaultTransactionIsolation should be(Connection.TRANSACTION_NONE)
+        metadata.getUserName should be ("")
 
         metadata.allProceduresAreCallable should be(false)
         metadata.allTablesAreSelectable should be(false)
@@ -232,9 +237,9 @@ class KsqlDatabaseMetaDataSpec extends AnyWordSpec with Matchers with MockFactor
         metadata.supportsMinimumSQLGrammar should be(true)
         metadata.supportsCoreSQLGrammar should be(false)
         metadata.supportsExtendedSQLGrammar should be(false)
-        metadata.supportsOuterJoins should be(false)
-        metadata.supportsFullOuterJoins should be(false)
-        metadata.supportsLimitedOuterJoins should be(false)
+        metadata.supportsOuterJoins should be(true)
+        metadata.supportsFullOuterJoins should be(true)
+        metadata.supportsLimitedOuterJoins should be(true)
         metadata.supportsTransactions should be(false)
         metadata.supportsUnion should be(false)
         metadata.supportsUnionAll should be(false)

@@ -10,20 +10,20 @@ import scala.util.matching.Regex
 
 object KsqlDriver {
 
-  val ksqlName = "KSQL"
+  val ksqlName = "ksqlDB"
   val ksqlPrefix = "jdbc:ksql://"
 
-  val driverName = "KSQL JDBC driver"
+  val driverName = "ksqlDB JDBC driver"
   val driverMajorVersion = 1
-  val driverMinorVersion = 0
+  val driverMinorVersion = 2
   val driverVersion = s"$driverMajorVersion.$driverMinorVersion"
 
   val jdbcMajorVersion = 4
   val jdbcMinorVersion = 1
 
   val ksqlMajorVersion = 5
-  val ksqlMinorVersion = 1
-  val ksqlMicroVersion = 2
+  val ksqlMinorVersion = 4
+  val ksqlMicroVersion = 0
   val ksqlVersion = s"$ksqlMajorVersion.$ksqlMinorVersion.$ksqlMicroVersion"
 
   private val ksqlUserPassRegex = "((.+):(.+)@){0,1}"

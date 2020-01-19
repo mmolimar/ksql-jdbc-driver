@@ -420,6 +420,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getJDBCMinorVersion: Int = KsqlDriver.jdbcMinorVersion
 
+  override def getUserName: String = ksqlConnection.values.username.getOrElse("")
+
   override def getDriverVersion: String = KsqlDriver.driverVersion
 
   override def getDriverName: String = KsqlDriver.driverName
@@ -467,6 +469,14 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def getCatalogs: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.catalogs, 0, Iterator.empty)
 
   override def getConnection: Connection = ksqlConnection
+
+  override def getMaxTableNameLength: Int = 0
+
+  override def getMaxTablesInSelect: Int = 0
+
+  override def getMaxUserNameLength: Int = 0
+
+  override def getDefaultTransactionIsolation: Int = Connection.TRANSACTION_NONE
 
   override def getSuperTables(catalog: String, schemaPattern: String,
                               tableNamePattern: String): ResultSet = {
@@ -846,11 +856,11 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsExtendedSQLGrammar: Boolean = false
 
-  override def supportsOuterJoins: Boolean = false
+  override def supportsOuterJoins: Boolean = true
 
-  override def supportsFullOuterJoins: Boolean = false
+  override def supportsFullOuterJoins: Boolean = true
 
-  override def supportsLimitedOuterJoins: Boolean = false
+  override def supportsLimitedOuterJoins: Boolean = true
 
   override def supportsUnion: Boolean = false
 

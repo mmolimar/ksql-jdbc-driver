@@ -22,7 +22,7 @@ class KsqlDriverSpec extends AnyWordSpec with Matchers with MockFactory {
         driver.jdbcCompliant should be(false)
       }
       "have a major and minor version" in {
-        driver.getMinorVersion should be(0)
+        driver.getMinorVersion should be(2)
         driver.getMajorVersion should be(1)
       }
       "have no properties" in {

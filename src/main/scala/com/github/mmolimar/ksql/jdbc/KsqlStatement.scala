@@ -265,7 +265,7 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
         }
         val rows = sources.map(s => Seq(
           e.getConnectorClass,
-          e.getStatus.name,
+          e.getStatus.name(),
           e.getStatus.`type`.name,
           e.getStatus.connector.state,
           e.getStatus.connector.trace,
@@ -288,13 +288,13 @@ class KsqlStatement(private val ksqlClient: KsqlRestClient, val timeout: Long = 
       case e: ConnectorList =>
         val rows = e.getConnectors.asList.asScala.map(c => Seq(
           c.getName,
-          Option(c.getType).map(_.name).getOrElse(""),
+          Option(c.getType).map(_.name()).getOrElse(""),
           c.getClassName
         )).toIterator
         new IteratorResultSet[String](connectorListEntity, maxRows, rows)
       case e: CreateConnectorEntity =>
         val rows = Iterator(Seq(
-          e.getInfo.name,
+          e.getInfo.name(),
           Option(e.getInfo.`type`).map(_.name).getOrElse(""),
           e.getInfo.tasks.asScala.map(t => s"[${t.task}]-${t.connector}").mkString("\n"),
           e.getInfo.config.asScala.map(c => s"${c._1} -> ${c._2}").mkString("\n")
