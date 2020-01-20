@@ -1,10 +1,10 @@
 # ksqlDB JDBC Driver [![Build Status](https://travis-ci.org/mmolimar/ksql-jdbc-driver.svg?branch=master)](https://travis-ci.org/mmolimar/ksql-jdbc-driver)[![Coverage Status](https://coveralls.io/repos/github/mmolimar/ksql-jdbc-driver/badge.svg?branch=master)](https://coveralls.io/github/mmolimar/ksql-jdbc-driver?branch=master)
 
-**ksql-jdbc-driver** is a Type 3 Java Database Connectivity (JDBC) driver that provides standard access to
+**ksql-jdbc-driver** is a Type 4 Java Database Connectivity (JDBC) driver that provides standard access to
 Apache Kafka via JDBC API.
 
-In the current version, the driver connects to the [ksqlDB engine](https://ksqldb.io/) to
-perform queries to Kafka and then, the engine translates those requests to Kafka requests.
+The driver connects to the [ksqlDB engine](https://ksqldb.io/) then, the engine translates those requests 
+to Kafka requests.
 
 ## Getting started
 
