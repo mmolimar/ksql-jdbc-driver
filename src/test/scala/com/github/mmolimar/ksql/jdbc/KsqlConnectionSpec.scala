@@ -64,6 +64,7 @@ class KsqlConnectionSpec extends AnyWordSpec with Matchers with MockFactory {
         ksqlConnection.setAutoCommit(true)
         ksqlConnection.setAutoCommit(false)
         ksqlConnection.getAutoCommit should be(false)
+        ksqlConnection.getSchema should be(None.orNull)
         ksqlConnection.getWarnings should be(None.orNull)
         ksqlConnection.getCatalog should be(None.orNull)
         ksqlConnection.setCatalog("test")

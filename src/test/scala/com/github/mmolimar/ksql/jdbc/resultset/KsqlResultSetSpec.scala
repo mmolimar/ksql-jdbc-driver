@@ -144,9 +144,31 @@ class KsqlResultSetSpec extends AnyWordSpec with Matchers with MockFactory with 
           resultSet.getDouble(index + 1) should be(e(8))
           resultSet.wasNull should be(false)
         }
+        resultSet.getObject(1) should be(Int.box(1))
+        resultSet.getObject(2) should be(Long.box(2L))
+        resultSet.getObject(3) should be(Double.box(3.3d))
+        resultSet.getObject(4) should be(Boolean.box(true))
+        resultSet.getObject(5) should be("1")
+        resultSet.getObject(6) should be(Map.empty)
+        resultSet.getObject(7) should be(scala.Array.empty)
+        resultSet.getObject(8) should be(Map.empty)
+
+        resultSet.getString(9) should be(None.orNull)
+        resultSet.getBytes(9) should be(None.orNull)
+        resultSet.getBoolean(9) should be(Boolean.box(false))
+        resultSet.getByte(9) should be(Byte.box(0))
+        resultSet.getShort(9) should be(Short.box(0))
+        resultSet.getInt(9) should be(Int.box(0))
+        resultSet.getLong(9) should be(Long.box(0L))
+        resultSet.getFloat(9) should be(Float.box(0.0f))
+        resultSet.getDouble(9) should be(Double.box(0.0d))
+        resultSet.getObject(9) should be(None.orNull)
 
         assertThrows[SQLException] {
           resultSet.getString(1000)
+        }
+        assertThrows[SQLException] {
+          resultSet.getObject("UNKNOWN")
         }
         assertThrows[SQLException] {
           resultSet.getString("UNKNOWN")

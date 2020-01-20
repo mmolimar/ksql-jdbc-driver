@@ -234,6 +234,8 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
 
   override def getAutoCommit: Boolean = false
 
+  override def getSchema: String = None.orNull
+
   override def isValid(timeout: Int): Boolean = ksqlClient.makeStatusRequest.isSuccessful
 
   override def isClosed: Boolean = !connected.getOrElse(throw NotConnected(values.jdbcUrl))

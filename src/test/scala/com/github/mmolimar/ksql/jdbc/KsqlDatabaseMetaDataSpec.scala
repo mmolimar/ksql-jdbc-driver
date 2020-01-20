@@ -1,7 +1,7 @@
 package com.github.mmolimar.ksql.jdbc
 
 import java.io.InputStream
-import java.sql.{Connection, ResultSet, SQLException, SQLFeatureNotSupportedException}
+import java.sql.{Connection, ResultSet, RowIdLifetime, SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
@@ -180,11 +180,14 @@ class KsqlDatabaseMetaDataSpec extends AnyWordSpec with Matchers with MockFactor
         metadata.getSearchStringEscape should be("%")
         metadata.getExtraNameCharacters should be("#@")
         metadata.getMaxConnections should be(0)
+        metadata.getMaxIndexLength should be(0)
+        metadata.getMaxSchemaNameLength should be(0)
         metadata.getMaxTableNameLength should be(0)
         metadata.getMaxTablesInSelect should be(0)
         metadata.getMaxUserNameLength should be(0)
         metadata.getMaxUserNameLength should be(0)
         metadata.getDefaultTransactionIsolation should be(Connection.TRANSACTION_NONE)
+        metadata.getRowIdLifetime should be(RowIdLifetime.ROWID_VALID_OTHER)
         metadata.getUserName should be ("")
 
         metadata.allProceduresAreCallable should be(false)
@@ -241,6 +244,9 @@ class KsqlDatabaseMetaDataSpec extends AnyWordSpec with Matchers with MockFactor
         metadata.supportsFullOuterJoins should be(true)
         metadata.supportsLimitedOuterJoins should be(true)
         metadata.supportsTransactions should be(false)
+        metadata.supportsPositionedUpdate should be(false)
+        metadata.supportsPositionedDelete should be(false)
+        metadata.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY) should be(true)
         metadata.supportsUnion should be(false)
         metadata.supportsUnionAll should be(false)
       }

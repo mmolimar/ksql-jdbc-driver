@@ -430,9 +430,11 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getDatabaseProductVersion: String = KsqlDriver.ksqlVersion
 
-  override def getDatabaseMajorVersion: Int = KsqlDriver.driverMajorVersion
+  override def getDatabaseMajorVersion: Int = KsqlDriver.ksqlMajorVersion
 
-  override def getDatabaseMinorVersion: Int = KsqlDriver.driverMinorVersion
+  override def getDatabaseMinorVersion: Int = KsqlDriver.ksqlMinorVersion
+
+  override def getRowIdLifetime: RowIdLifetime = RowIdLifetime.ROWID_VALID_OTHER
 
   override def getCatalogTerm: String = "TOPIC"
 
@@ -470,11 +472,17 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getConnection: Connection = ksqlConnection
 
+  override def getMaxIndexLength: Int = 0
+
+  override def getMaxSchemaNameLength: Int = 0
+
   override def getMaxTableNameLength: Int = 0
 
   override def getMaxTablesInSelect: Int = 0
 
   override def getMaxUserNameLength: Int = 0
+
+  override def supportsResultSetType(`type`: Int): Boolean = `type` == ResultSet.TYPE_FORWARD_ONLY
 
   override def getDefaultTransactionIsolation: Int = Connection.TRANSACTION_NONE
 
@@ -744,7 +752,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getNumericFunctions: String = availableFunctions(
     author = None,
-    types = Set("INT", "BIGINT", "DOUBLE", "DECIMAL")
+    types = Set("INT", "INTEGER", "BIGINT", "DOUBLE", "DECIMAL")
   ).mkString(",")
 
   override def getStringFunctions: String = availableFunctions(
@@ -867,6 +875,10 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def supportsUnionAll: Boolean = false
 
   override def supportsTransactions: Boolean = false
+
+  override def supportsPositionedUpdate: Boolean = false
+
+  override def supportsPositionedDelete: Boolean = false
 
   private def availableFunctions(author: Option[String] = None, names: Set[String] = Set.empty,
                                  types: Set[String] = Set(".*")): Set[String] = {

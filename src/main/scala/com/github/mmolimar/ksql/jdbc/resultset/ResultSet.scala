@@ -477,6 +477,10 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
   override def getString(columnLabel: String): String = getColumn[String](columnLabel)
 
+  override def getObject(columnIndex: Int): AnyRef = getColumn[AnyRef](columnIndex)
+
+  override def getObject(columnLabel: String): AnyRef = getColumn[AnyRef](columnLabel)
+
   override def getMetaData: ResultSetMetaData = metadata
 
   override def getWarnings: SQLWarning = None.orNull
@@ -512,7 +516,7 @@ private[resultset] abstract class AbstractResultSet[T](private val metadata: Res
 
     import ImplicitClasses._
     ev.runtimeClass match {
-      case Any_ if ev.runtimeClass == value.getClass => value
+      case Any_ if ev.runtimeClass == Option(value).map(_.getClass).getOrElse(classOf[Object]) => value
       case String_ => Option(value).map(_.toString).getOrElse(None.orNull)
       case JBoolean_ if value.isInstanceOf[String] => JBoolean.parseBoolean(value.asInstanceOf[String])
       case JBoolean_ if value.isInstanceOf[Number] => value.asInstanceOf[Number].intValue != 0
