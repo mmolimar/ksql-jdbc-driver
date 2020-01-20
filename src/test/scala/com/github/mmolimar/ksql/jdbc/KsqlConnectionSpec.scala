@@ -4,21 +4,22 @@ import java.sql.{Connection, SQLException, SQLFeatureNotSupportedException}
 import java.util.{Collections, Properties}
 
 import com.github.mmolimar.ksql.jdbc.utils.TestUtils._
-import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
+import io.confluent.ksql.rest.client.{KsqlRestClient, MockableKsqlRestClient, RestResponse}
 import io.confluent.ksql.rest.entity._
-import io.confluent.ksql.rest.server.computation.CommandId
+import org.eclipse.jetty.http.HttpStatus.Code
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
+class KsqlConnectionSpec extends AnyWordSpec with Matchers with MockFactory {
 
   "A KsqlConnection" when {
 
     "validating specs" should {
-      val values = KsqlConnectionValues("localhost", 8080, Map.empty[String, String])
-      val ksqlRestClient = mock[MockableKsqlRestClient]
+      val values = KsqlConnectionValues("localhost", 8080, None, None, Map.empty[String, String])
+      val mockKsqlRestClient = mock[MockableKsqlRestClient]
       val ksqlConnection = new KsqlConnection(values, new Properties) {
-        override def init: KsqlRestClient = ksqlRestClient
+        override def init: KsqlRestClient = mockKsqlRestClient
       }
 
       "throw not supported exception if not supported" in {
@@ -32,27 +33,26 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
       }
 
       "work if implemented" in {
-
         assertThrows[SQLException] {
           ksqlConnection.isClosed
         }
         ksqlConnection.getTransactionIsolation should be(Connection.TRANSACTION_NONE)
         ksqlConnection.setClientInfo(new Properties)
 
-        (ksqlRestClient.makeKsqlRequest(_: String)).expects(*)
-          .returns(RestResponse.successful[KsqlEntityList](new KsqlEntityList))
+        (mockKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
+          .returns(RestResponse.successful[KsqlEntityList](Code.OK, new KsqlEntityList))
         ksqlConnection.setClientInfo("", "")
         assertThrows[SQLException] {
-          (ksqlRestClient.makeKsqlRequest(_: String)).expects(*)
-            .returns(RestResponse.erroneous(new KsqlErrorMessage(-1, "", Collections.emptyList[String])))
+          (mockKsqlRestClient.makeKsqlRequest(_: String)).expects(*)
+            .returns(RestResponse.erroneous(Code.INTERNAL_SERVER_ERROR, new KsqlErrorMessage(-1, "", Collections.emptyList[String])))
           ksqlConnection.setClientInfo("", "")
         }
 
-        ksqlConnection.isReadOnly should be(true)
+        ksqlConnection.isReadOnly should be(false)
 
-        (ksqlRestClient.makeStatusRequest _: () => RestResponse[CommandStatuses]).expects
+        (mockKsqlRestClient.makeStatusRequest _: () => RestResponse[CommandStatuses]).expects
           .returns(RestResponse.successful[CommandStatuses]
-            (new CommandStatuses(Collections.emptyMap[CommandId, CommandStatus.Status])))
+            (Code.OK, new CommandStatuses(Collections.emptyMap[CommandId, CommandStatus.Status])))
         ksqlConnection.isValid(0) should be(true)
 
         Option(ksqlConnection.getMetaData) should not be None
@@ -64,12 +64,13 @@ class KsqlConnectionSpec extends WordSpec with Matchers with MockFactory {
         ksqlConnection.setAutoCommit(true)
         ksqlConnection.setAutoCommit(false)
         ksqlConnection.getAutoCommit should be(false)
+        ksqlConnection.getSchema should be(None.orNull)
         ksqlConnection.getWarnings should be(None.orNull)
         ksqlConnection.getCatalog should be(None.orNull)
         ksqlConnection.setCatalog("test")
         ksqlConnection.getCatalog should be(None.orNull)
 
-        (ksqlRestClient.close _).expects
+        (mockKsqlRestClient.close _).expects
         ksqlConnection.close()
         ksqlConnection.isClosed should be(true)
         ksqlConnection.commit()

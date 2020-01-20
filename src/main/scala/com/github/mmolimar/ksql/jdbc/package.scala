@@ -2,6 +2,8 @@ package com.github.mmolimar.ksql
 
 import java.sql.ResultSet
 
+import scala.language.implicitConversions
+
 package object jdbc {
 
   object implicits {
@@ -18,9 +20,8 @@ package object jdbc {
     }
 
     implicit def toIndexedMap(headers: List[HeaderField]): Map[Int, HeaderField] = {
-      headers.zipWithIndex.map { case (header, index) => {
+      headers.zipWithIndex.map { case (header, index) =>
         HeaderField(header.name, header.label, header.jdbcType, header.length, index + 1)
-      }
       }.map(h => h.index -> h).toMap
     }
   }

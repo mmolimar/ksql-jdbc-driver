@@ -5,7 +5,7 @@ import java.sql.{ResultSetMetaData, Types}
 import com.github.mmolimar.ksql.jdbc.Exceptions._
 import com.github.mmolimar.ksql.jdbc.implicits.toIndexedMap
 import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
-import io.confluent.ksql.rest.entity.SchemaInfo.{Type => KsqlType}
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
 
 
 class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extends ResultSetMetaDataNotSupported {
@@ -20,6 +20,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
       case Types.INTEGER => classOf[java.lang.Integer]
       case Types.BIGINT => classOf[java.lang.Long]
       case Types.DOUBLE => classOf[java.lang.Double]
+      case Types.DECIMAL => classOf[java.math.BigDecimal]
       case Types.BOOLEAN => classOf[java.lang.Boolean]
       case Types.VARCHAR => classOf[java.lang.String]
       case Types.JAVA_OBJECT => classOf[java.util.Map[AnyRef, AnyRef]]
@@ -42,6 +43,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
       case Types.INTEGER => KsqlType.INTEGER
       case Types.BIGINT => KsqlType.BIGINT
       case Types.DOUBLE => KsqlType.DOUBLE
+      case Types.DECIMAL => KsqlType.DECIMAL
       case Types.BOOLEAN => KsqlType.BOOLEAN
       case Types.VARCHAR => KsqlType.STRING
       case Types.JAVA_OBJECT => KsqlType.MAP
@@ -76,7 +78,7 @@ class KsqlResultSetMetaData(private[jdbc] val columns: List[HeaderField]) extend
 
   override def isSearchable(column: Int): Boolean = true
 
-  override def isReadOnly(column: Int): Boolean = true
+  override def isReadOnly(column: Int): Boolean = false
 
   override def isWritable(column: Int): Boolean = !isReadOnly(column)
 

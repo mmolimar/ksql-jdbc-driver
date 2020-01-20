@@ -1,17 +1,17 @@
-# KSQL JDBC Driver [![Build Status](https://travis-ci.org/mmolimar/ksql-jdbc-driver.svg?branch=master)](https://travis-ci.org/mmolimar/ksql-jdbc-driver)[![Coverage Status](https://coveralls.io/repos/github/mmolimar/ksql-jdbc-driver/badge.svg?branch=master)](https://coveralls.io/github/mmolimar/ksql-jdbc-driver?branch=master)
+# ksqlDB JDBC Driver [![Build Status](https://travis-ci.org/mmolimar/ksql-jdbc-driver.svg?branch=master)](https://travis-ci.org/mmolimar/ksql-jdbc-driver)[![Coverage Status](https://coveralls.io/repos/github/mmolimar/ksql-jdbc-driver/badge.svg?branch=master)](https://coveralls.io/github/mmolimar/ksql-jdbc-driver?branch=master)
 
-**ksql-jdbc-driver** is a Type 3 Java Database Connectivity (JDBC) driver that provides standard access to
+**ksql-jdbc-driver** is a Type 4 Java Database Connectivity (JDBC) driver that provides standard access to
 Apache Kafka via JDBC API.
 
-In the current version, the driver connects to the [KSQL engine](https://www.confluent.io/product/ksql/) to
-perform queries to Kafka and then, the engine translates those requests to Kafka requests.
+The driver connects to the [ksqlDB engine](https://ksqldb.io/) then, the engine translates those requests 
+to Kafka requests.
 
 ## Getting started
 
 ### Building from source ###
 
-Just clone the ksql-jdbc-driver repo and package it:
- 
+Just clone the ``ksql-jdbc-driver`` repo and package it:
+
 ``git clone https://github.com/mmolimar/ksql-jdbc-driver.git && cd ksql-jdbc-driver``
 
 ``sbt clean package``
@@ -37,7 +37,7 @@ To know the test coverage of the driver:
 
 As expected, the driver can be used as we are used to. So, in your application, register the driver (depending on
 your JVM), for example:
- 
+
 * ``java.sql.DriverManager.registerDriver(new com.github.mmolimar.ksql.jdbc.KsqlDriver)``
 
 or
@@ -46,16 +46,17 @@ or
 
 ### Connection URL
 
-The URL has the form ``jdbc:ksql://<ksql-engine>:<port>[?<property1>=<value>&<property2>=<value>...]``
+The URL has the form ``jdbc:ksql://[<username>:<password>@]<ksql-engine>:<port>[?<property1>=<value>&<property2>=<value>...]``
 
 where:
 
-* **\<ksql-engine>**: represents the KSQL engine host.
-* **\<port>**: is the KSQL engine port.
+* **\<username>:\<password>**: optional username and password to log into ksqlDB.
+* **\<ksql-engine>**: represents the ksqlDB engine host.
+* **\<port>**: ksqlDB engine port.
 * **\<propertyN>**: are the custom client properties (optionals). Available properties:
-  * ``secured``: sets if the KSQL connection is secured or not. It's a boolean (``true``|``false``) and its default
+  * ``secured``: sets if the ksqlDB connection is secured or not. It's a boolean (``true``|``false``) and its default
   value is ``false``.
-  * ``properties``: enables to set in KSQL extra properties from the JDBC URL. It's a boolean (``true``|``false``)
+  * ``properties``: enables to set in ksqlDB extra properties from the JDBC URL. It's a boolean (``true``|``false``)
   and its default value is ``false``.
   * ``timeout``: sets the max wait time between each message when receiving them. It's a long and its default
   value is ``0`` which means that is infinite.

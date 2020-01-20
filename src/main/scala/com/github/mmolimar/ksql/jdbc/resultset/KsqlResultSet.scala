@@ -5,15 +5,16 @@ import java.sql.{ResultSet, ResultSetMetaData}
 import java.util.{NoSuchElementException, Scanner, Iterator => JIterator}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import com.github.mmolimar.ksql.jdbc.{HeaderField, InvalidColumn}
+import com.github.mmolimar.ksql.jdbc.{EmptyRow, HeaderField}
 import io.confluent.ksql.GenericRow
-import io.confluent.ksql.rest.client.KsqlRestClient
+import io.confluent.ksql.rest.client.QueryStream
 import io.confluent.ksql.rest.entity.StreamedRow
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, TimeoutException}
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 
@@ -34,7 +35,7 @@ class IteratorResultSet[T <: Any](private val metadata: ResultSetMetaData, priva
 
 trait KsqlStream extends Closeable with JIterator[StreamedRow]
 
-private[jdbc] class KsqlQueryStream(stream: KsqlRestClient.QueryStream) extends KsqlStream {
+private[jdbc] class KsqlQueryStream(stream: QueryStream) extends KsqlStream {
 
   override def close(): Unit = stream.close()
 
@@ -67,19 +68,23 @@ private[jdbc] class KsqlInputStream(stream: InputStream) extends KsqlStream {
 
 class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
                         private[jdbc] val stream: KsqlStream, private[resultset] val maxRows: Long, val timeout: Long = 0)
-  extends AbstractResultSet[StreamedRow](metadata, maxRows, stream) {
-
-  private val emptyRow: StreamedRow = StreamedRow.row(new GenericRow)
+  extends AbstractResultSet[StreamedRow](metadata, maxRows, stream.asScala) {
 
   private val waitDuration = if (timeout > 0) timeout millis else Duration.Inf
+
+  private var maxBound = 0
 
   protected override def nextResult: Boolean = {
     def hasNext = if (stream.hasNext) {
       stream.next match {
-        case record if Option(record.getRow).isEmpty => false
-        case record =>
+        case record if record.getHeader.isPresent && !record.getRow.isPresent =>
+          maxBound = record.getHeader.get.getSchema.columns.size
+          next
+        case record if record.getRow.isPresent =>
+          maxBound = record.getRow.get.getColumns.size
           currentRow = Some(record)
           true
+        case _ => false
       }
     } else {
       false
@@ -94,10 +99,11 @@ class StreamedResultSet(private[jdbc] val metadata: ResultSetMetaData,
 
   override protected def closeInherit(): Unit = stream.close()
 
-  override protected def getColumnBounds: (Int, Int) = (1, currentRow.getOrElse(emptyRow).getRow.getColumns.size)
+  override protected def getColumnBounds: (Int, Int) = (1, maxBound)
 
   override protected def getValue[T](columnIndex: Int): T = {
-    currentRow.map(_.getRow.getColumns.get(columnIndex - 1)).getOrElse(throw InvalidColumn()).asInstanceOf[T]
+    currentRow.filter(_.getRow.isPresent).map(_.getRow.get.getColumnValue[T](columnIndex - 1))
+      .getOrElse(throw EmptyRow())
   }
 
   override def getConcurrency: Int = ResultSet.CONCUR_READ_ONLY

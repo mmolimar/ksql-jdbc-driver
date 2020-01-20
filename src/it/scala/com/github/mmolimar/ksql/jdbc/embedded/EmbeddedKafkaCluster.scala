@@ -26,7 +26,7 @@ class EmbeddedKafkaCluster(zkConnection: String,
     info("Starting up embedded Kafka brokers")
 
     for ((port, i) <- actualPorts.zipWithIndex) {
-      val logDir: File = TestUtils.constructTempDir("kafka-local")
+      val logDir: File = TestUtils.makeTempDir("kafka-local")
 
       val properties: Properties = new Properties(baseProps)
       properties.setProperty(KafkaConfig.ZkConnectProp, zkConnection)
@@ -75,7 +75,7 @@ class EmbeddedKafkaCluster(zkConnection: String,
 
   def existTopic(topic: String): Boolean = zkClient.topicExists(topic)
 
-  def listTopics: Seq[String] = zkClient.getAllTopicsInCluster
+  def listTopics: Set[String] = zkClient.getAllTopicsInCluster
 
   private def resolvePort(port: Int) = if (port <= 0) TestUtils.getAvailablePort else port
 

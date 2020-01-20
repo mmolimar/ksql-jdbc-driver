@@ -25,7 +25,7 @@ object TableTypes {
     val name: String = "STREAM"
   }
 
-  val tableTypes = Seq(TABLE, STREAM)
+  val tableTypes: Seq[TableType] = Seq(TABLE, STREAM)
 
 }
 
@@ -420,6 +420,8 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getJDBCMinorVersion: Int = KsqlDriver.jdbcMinorVersion
 
+  override def getUserName: String = ksqlConnection.values.username.getOrElse("")
+
   override def getDriverVersion: String = KsqlDriver.driverVersion
 
   override def getDriverName: String = KsqlDriver.driverName
@@ -428,9 +430,11 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getDatabaseProductVersion: String = KsqlDriver.ksqlVersion
 
-  override def getDatabaseMajorVersion: Int = KsqlDriver.driverMajorVersion
+  override def getDatabaseMajorVersion: Int = KsqlDriver.ksqlMajorVersion
 
-  override def getDatabaseMinorVersion: Int = KsqlDriver.driverMinorVersion
+  override def getDatabaseMinorVersion: Int = KsqlDriver.ksqlMinorVersion
+
+  override def getRowIdLifetime: RowIdLifetime = RowIdLifetime.ROWID_VALID_OTHER
 
   override def getCatalogTerm: String = "TOPIC"
 
@@ -443,10 +447,14 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def getUDTs(catalog: String, schemaPattern: String, typeNamePattern: String, types: Array[Int]): ResultSet =
     new IteratorResultSet(List.empty[HeaderField], 0, Iterator.empty)
 
-  override def getSQLKeywords: String = Seq("CREATE STREAM", "DESCRIBE", "DESCRIBE FUNCTION", "EXPLAIN",
-    "DROP STREAM", "DROP TABLE", "PRINT", "CAST", "SHOW FUNCTIONS", "LIST FUNCTIONS",
-    "SHOW TOPICS", "SHOW FUNCTIONS", "SHOW STREAMS", "SHOW TABLES", "SHOW QUERIES", "SHOW PROPERTIES",
-    "TERMINATE").mkString(",")
+  override def getSQLKeywords: String = Seq(
+    "CREATE", "CREATE TABLE", "CREATE STREAM", "CREATE TYPE", "CREATE SOURCE CONNECTOR", "CREATE SINK CONNECTOR",
+    "DESCRIBE", "DESCRIBE EXTENDED", "DESCRIBE CONNECTOR", "DESCRIBE FUNCTION",
+    "DROP", "DROP TABLE", "DROP STREAM", "DROP TYPE", "DROP CONNECTOR",
+    "SHOW", "SHOW TABLES", "SHOW STREAMS", "SHOW TYPES", "SHOW CONNECTORS", "SHOW FUNCTIONS",
+    "SHOW PROPERTIES", "SHOW QUERIES", "SHOW TOPICS", "SHOW TOPICS EXTENDED",
+    "EXPLAIN", "PRINT", "CAST", "LIST FUNCTIONS", "TERMINATE"
+  ).mkString(",")
 
   override def getMaxStatements: Int = 0
 
@@ -454,7 +462,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def getURL: String = ksqlConnection.values.jdbcUrl
 
-  override def isReadOnly: Boolean = true
+  override def isReadOnly: Boolean = false
 
   override def getProcedures(catalog: String, schemaPattern: String, procedureNamePattern: String): ResultSet = {
     new IteratorResultSet(DatabaseMetadataHeaders.procedures, 0, Iterator.empty)
@@ -463,6 +471,20 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
   override def getCatalogs: ResultSet = new IteratorResultSet(DatabaseMetadataHeaders.catalogs, 0, Iterator.empty)
 
   override def getConnection: Connection = ksqlConnection
+
+  override def getMaxIndexLength: Int = 0
+
+  override def getMaxSchemaNameLength: Int = 0
+
+  override def getMaxTableNameLength: Int = 0
+
+  override def getMaxTablesInSelect: Int = 0
+
+  override def getMaxUserNameLength: Int = 0
+
+  override def supportsResultSetType(`type`: Int): Boolean = `type` == ResultSet.TYPE_FORWARD_ONLY
+
+  override def getDefaultTransactionIsolation: Int = Connection.TRANSACTION_NONE
 
   override def getSuperTables(catalog: String, schemaPattern: String,
                               tableNamePattern: String): ResultSet = {
@@ -479,11 +501,11 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     types.foreach(t => if (!TableTypes.tableTypes.map(_.name).contains(t)) throw UnknownTableType(s"Unknown table type $t"))
     val tablePattern = {
       if (Option(tableNamePattern).getOrElse("").equals("")) ".*" else tableNamePattern
-    }.toUpperCase.r.pattern
+      }.toUpperCase.r.pattern
 
     val itTables = if (types.contains(TableTypes.TABLE.name)) {
       val tables = ksqlConnection.executeKsqlCommand("SHOW TABLES;")
-      if (tables.isErroneous) throw KsqlCommandError(s"Error showing tables: ${tables.getErrorMessage.getMessage}")
+      if (tables.isErroneous) throw KsqlCommandError(s"Error showing tables", Some(tables.getErrorMessage))
 
       tables.getResponse.asScala.flatMap(_.asInstanceOf[TablesList].getTables.asScala)
         .filter(tb => tablePattern.matcher(tb.getName.toUpperCase).matches)
@@ -495,7 +517,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
     val itStreams = if (types.contains(TableTypes.STREAM.name)) {
       val streams = ksqlConnection.executeKsqlCommand("SHOW STREAMS;")
-      if (streams.isErroneous) throw KsqlCommandError(s"Error showing streams: ${streams.getErrorMessage.getMessage}")
+      if (streams.isErroneous) throw KsqlCommandError(s"Error showing streams", Some(streams.getErrorMessage))
 
       streams.getResponse.asScala.flatMap(_.asInstanceOf[StreamsList].getStreams.asScala)
         .filter(tb => tablePattern.matcher(tb.getName.toUpperCase).matches)
@@ -690,14 +712,13 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
     val tables = getTables(catalog, schemaPattern, tableNamePattern, TableTypes.tableTypes.map(_.name).toArray)
     val columnPattern = {
       if (Option(columnNamePattern).getOrElse("").equals("")) ".*" else columnNamePattern
-    }.toUpperCase.r.pattern
+      }.toUpperCase.r.pattern
 
     var columns: Iterator[Seq[AnyRef]] = Iterator.empty
     tables.toStream.foreach { table =>
       val tableName = table.getString(3)
       val describe = ksqlConnection.executeKsqlCommand(s"DESCRIBE $tableName;")
-      if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName: " +
-        describe.getErrorMessage.getMessage)
+      if (describe.isErroneous) throw KsqlCommandError(s"Error describing table $tableName", Some(describe.getErrorMessage))
 
       //generated fields from KSQL engine
       var defaultFields: Iterator[Seq[AnyRef]] = Iterator.empty
@@ -718,20 +739,20 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
       columns ++= describe.getResponse.asScala.map(_.asInstanceOf[SourceDescriptionEntity])
         .map(_.getSourceDescription)
         .filter(sd => columnPattern.matcher(sd.getName.toUpperCase).matches)
-        .map(sd => {
-          Seq[AnyRef]("", "", tableName, sd.getName, Int.box(DatabaseMetadataHeaders.mapDataType(sd.getType)), sd.getType,
-            Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10), Int.box(DatabaseMetaData.columnNullableUnknown),
-            "", "", Int.box(-1), Int.box(-1), Int.box(32), Int.box(17), "", "", "", "",
-            Int.box(DatabaseMetadataHeaders.mapDataType(sd.getType)), "NO", "NO")
-
-        }).toIterator
+        .flatMap(_.getFields.asScala)
+        .map(f =>
+          Seq[AnyRef]("", "", tableName, f.getName, Int.box(DatabaseMetadataHeaders.mapDataType(f.getSchema.getType)),
+            f.getSchema.getType.toString, Int.box(Int.MaxValue), Int.box(0), "null", Int.box(10),
+            Int.box(DatabaseMetaData.columnNullableUnknown), "", "", Int.box(-1), Int.box(-1), Int.box(32),
+            Int.box(17), "", "", "", "", Int.box(DatabaseMetadataHeaders.mapDataType(f.getSchema.getType)), "NO", "NO")
+        ).toIterator
     }
     new IteratorResultSet(DatabaseMetadataHeaders.columns, 0, columns)
   }
 
   override def getNumericFunctions: String = availableFunctions(
     author = None,
-    types = Set("INT", "BIGINT", "DOUBLE")
+    types = Set("INT", "INTEGER", "BIGINT", "DOUBLE", "DECIMAL")
   ).mkString(",")
 
   override def getStringFunctions: String = availableFunctions(
@@ -843,17 +864,21 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
 
   override def supportsExtendedSQLGrammar: Boolean = false
 
-  override def supportsOuterJoins: Boolean = false
+  override def supportsOuterJoins: Boolean = true
 
-  override def supportsFullOuterJoins: Boolean = false
+  override def supportsFullOuterJoins: Boolean = true
 
-  override def supportsLimitedOuterJoins: Boolean = false
+  override def supportsLimitedOuterJoins: Boolean = true
 
   override def supportsUnion: Boolean = false
 
   override def supportsUnionAll: Boolean = false
 
   override def supportsTransactions: Boolean = false
+
+  override def supportsPositionedUpdate: Boolean = false
+
+  override def supportsPositionedDelete: Boolean = false
 
   private def availableFunctions(author: Option[String] = None, names: Set[String] = Set.empty,
                                  types: Set[String] = Set(".*")): Set[String] = {
@@ -865,7 +890,7 @@ class KsqlDatabaseMetaData(private val ksqlConnection: KsqlConnection) extends D
       ksqlConnection.createStatement.executeQuery(s"DESCRIBE FUNCTION $fnName").toStream.foreach { fnDesc =>
         val fnAuthor = fnDesc.getString("FUNCTION_DESCRIPTION_AUTHOR").trim.toUpperCase
         val fnReturnType = fnDesc.getString("FUNCTION_DESCRIPTION_FN_RETURN_TYPE")
-        if ((types.exists(fnReturnType.matches(_)) || names.exists(fnName.matches(_))) &&
+        if ((types.exists(fnReturnType.matches) || names.exists(fnName.matches)) &&
           (author.isEmpty || author.get.toUpperCase == fnAuthor.toUpperCase)) {
           functions += fnName
         }

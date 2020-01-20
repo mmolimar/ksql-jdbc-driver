@@ -2,6 +2,8 @@ package com.github.mmolimar.ksql.jdbc
 
 import java.sql.Types
 
+import io.confluent.ksql.schema.ksql.{SqlBaseType => KsqlType}
+
 
 case class HeaderField(name: String, label: String, jdbcType: Int, length: Int, index: Int)
 
@@ -104,22 +106,28 @@ object DatabaseMetadataHeaders {
     HeaderField("NUM_PREC_RADIX", Types.INTEGER, 10)
   )
 
-  def mapDataType(dataType: String): Int = dataType match {
-    case "BOOL" | "BOOLEAN" => Types.BOOLEAN
-    case "INT" | "INTEGER" => Types.INTEGER
-    case "LONG" | "BIGINT" => Types.BIGINT
-    case "DOUBLE" => Types.DOUBLE
-    case "STRING" | "VARCHAR" => Types.VARCHAR
-    case dt if dt.startsWith("ARRAY") => Types.ARRAY
-    case dt if dt.startsWith("MAP") => Types.STRUCT
-    case _ => Types.OTHER
+  def mapDataType(ksqlType: KsqlType): Int = ksqlType match {
+    case KsqlType.INTEGER => Types.INTEGER
+    case KsqlType.BIGINT => Types.BIGINT
+    case KsqlType.DOUBLE => Types.DOUBLE
+    case KsqlType.DECIMAL => Types.DECIMAL
+    case KsqlType.BOOLEAN => Types.BOOLEAN
+    case KsqlType.STRING => Types.VARCHAR
+    case KsqlType.ARRAY => Types.ARRAY
+    case KsqlType.MAP => Types.JAVA_OBJECT
+    case KsqlType.STRUCT => Types.STRUCT
   }
 
 }
 
 object KsqlEntityHeaders {
 
+  val printTopic = List(
+    HeaderField("PRINT_TOPIC", Types.VARCHAR, 255)
+  )
+
   val commandStatusEntity = List(
+    HeaderField("COMMAND_STATUS_SEQ_NUMBER", Types.BIGINT, 16),
     HeaderField("COMMAND_STATUS_ID_TYPE", Types.VARCHAR, 16),
     HeaderField("COMMAND_STATUS_ID_ENTITY", Types.VARCHAR, 32),
     HeaderField("COMMAND_STATUS_ID_ACTION", Types.VARCHAR, 16),
@@ -127,17 +135,64 @@ object KsqlEntityHeaders {
     HeaderField("COMMAND_STATUS_MESSAGE", Types.VARCHAR, 128)
   )
 
+  val sourceDescriptionEntity = List(
+    HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_NAME", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_TOPIC", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
+    HeaderField("SOURCE_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_PARTITIONS", Types.INTEGER, 8),
+    HeaderField("SOURCE_DESCRIPTION_REPLICATION", Types.INTEGER, 8),
+    HeaderField("SOURCE_DESCRIPTION_STATISTICS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_ERROR_STATS", Types.VARCHAR, 128),
+    HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
+  )
+
+  val connectorDescriptionEntity: List[HeaderField] = List(
+    HeaderField("CONNECTOR_DESCRIPTION_CLASS", Types.VARCHAR, 128),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_NAME", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_TYPE", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_CONNECTOR_STATE", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_CONNECTOR_TRACE", Types.VARCHAR, 128),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_CONNECTOR_WORKER_ID", Types.VARCHAR, 8),
+    HeaderField("CONNECTOR_DESCRIPTION_STATUS_TASKS_INFO", Types.VARCHAR, 512)
+  ) ++ sourceDescriptionEntity ++ List(
+    HeaderField("CONNECTOR_DESCRIPTION_TOPICS", Types.VARCHAR, 64)
+  )
+
+  val connectorListEntity = List(
+    HeaderField("CONNECTOR_NAME", Types.VARCHAR, 64),
+    HeaderField("CONNECTOR_TYPE", Types.VARCHAR, 16),
+    HeaderField("CONNECTOR_CLASS_NAME", Types.VARCHAR, 128)
+  )
+
+  val createConnectorEntity = List(
+    HeaderField("CREATE_CONNECTOR_INFO_NAME", Types.VARCHAR, 64),
+    HeaderField("CREATE_CONNECTOR_INFO_TYPE", Types.VARCHAR, 16),
+    HeaderField("CREATE_CONNECTOR_INFO_TASKS", Types.VARCHAR, 512),
+    HeaderField("CREATE_CONNECTOR_INFO_CONFIGS", Types.VARCHAR, 512)
+  )
+
+  val dropConnectorEntity = List(
+    HeaderField("DROP_CONNECTOR_NAME", Types.VARCHAR, 64)
+  )
+
+  val errorEntity = List(
+    HeaderField("ERROR_MESSAGE", Types.VARCHAR, 512)
+  )
+
   val executionPlanEntity = List(
-    HeaderField("EXECUTION_PLAN", Types.VARCHAR, 255)
+    HeaderField("EXECUTION_PLAN", Types.VARCHAR, 1024)
   )
 
   val functionDescriptionListEntity = List(
-    HeaderField("FUNCTION_DESCRIPTION_AUTHOR", Types.VARCHAR, 32),
-    HeaderField("FUNCTION_DESCRIPTION_DESCRIPTION", Types.VARCHAR, 64),
-    HeaderField("FUNCTION_DESCRIPTION_NAME", Types.VARCHAR, 16),
-    HeaderField("FUNCTION_DESCRIPTION_PATH", Types.VARCHAR, 64),
-    HeaderField("FUNCTION_DESCRIPTION_VERSION", Types.VARCHAR, 8),
+    HeaderField("FUNCTION_DESCRIPTION_NAME", Types.VARCHAR, 32),
     HeaderField("FUNCTION_DESCRIPTION_TYPE", Types.VARCHAR, 16),
+    HeaderField("FUNCTION_DESCRIPTION_DESCRIPTION", Types.VARCHAR, 128),
+    HeaderField("FUNCTION_DESCRIPTION_PATH", Types.VARCHAR, 128),
+    HeaderField("FUNCTION_DESCRIPTION_VERSION", Types.VARCHAR, 8),
+    HeaderField("FUNCTION_DESCRIPTION_AUTHOR", Types.VARCHAR, 32),
     HeaderField("FUNCTION_DESCRIPTION_FN_DESC", Types.VARCHAR, 128),
     HeaderField("FUNCTION_DESCRIPTION_FN_RETURN_TYPE", Types.VARCHAR, 16),
     HeaderField("FUNCTION_DESCRIPTION_FN_ARGS", Types.VARCHAR, 128)
@@ -150,9 +205,6 @@ object KsqlEntityHeaders {
 
   val kafkaTopicsListEntity = List(
     HeaderField("KAFKA_TOPIC_NAME", Types.VARCHAR, 16),
-    HeaderField("KAFKA_TOPIC_CONSUMER_COUNT", Types.INTEGER, 16),
-    HeaderField("KAFKA_TOPIC_CONSUMER_GROUP_COUNT", Types.INTEGER, 16),
-    HeaderField("KAFKA_TOPIC_REGISTERED", Types.BOOLEAN, 5),
     HeaderField("KAFKA_TOPIC_REPLICA_INFO", Types.VARCHAR, 32)
   )
 
@@ -162,6 +214,13 @@ object KsqlEntityHeaders {
     HeaderField("KSQL_TOPIC_FORMAT", Types.VARCHAR, 16)
   )
 
+  val kafkaTopicsListExtendedEntity = List(
+    HeaderField("KSQL_TOPIC_NAME", Types.VARCHAR, 16),
+    HeaderField("KSQL_TOPIC_REPLICA_INFO", Types.VARCHAR, 32),
+    HeaderField("KSQL_TOPIC_CONSUMER_COUNT", Types.INTEGER, 8),
+    HeaderField("KSQL_TOPIC_CONSUMER_GROUP_COUNT", Types.INTEGER, 8)
+  )
+
   val propertiesListEntity = List(
     HeaderField("PROPERTY_NAME", Types.VARCHAR, 16),
     HeaderField("PROPERTY_VALUE", Types.VARCHAR, 32)
@@ -169,8 +228,8 @@ object KsqlEntityHeaders {
 
   val queriesEntity = List(
     HeaderField("QUERY_ID", Types.VARCHAR, 16),
-    HeaderField("QUERY_STRING", Types.VARCHAR, 64),
-    HeaderField("QUERY_SINKS", Types.VARCHAR, 32)
+    HeaderField("QUERY_STRING", Types.VARCHAR, 128),
+    HeaderField("QUERY_SINKS", Types.VARCHAR, 256)
   )
 
   val queryDescriptionEntity = List(
@@ -179,25 +238,13 @@ object KsqlEntityHeaders {
     HeaderField("QUERY_DESCRIPTION_SOURCES", Types.VARCHAR, 32),
     HeaderField("QUERY_DESCRIPTION_SINKS", Types.VARCHAR, 32),
     HeaderField("QUERY_DESCRIPTION_TOPOLOGY", Types.VARCHAR, 255),
-    HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 255)
+    HeaderField("QUERY_DESCRIPTION_EXECUTION_PLAN", Types.VARCHAR, 255),
+    HeaderField("QUERY_DESCRIPTION_STATE", Types.VARCHAR, 16)
   )
 
-  val queryDescriptionEntityList = queryDescriptionEntity
+  val queryDescriptionEntityList: List[HeaderField] = queryDescriptionEntity
 
-  val sourceDescriptionEntity = List(
-    HeaderField("SOURCE_DESCRIPTION_KEY", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_NAME", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_TOPIC", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_TYPE", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
-    HeaderField("SOURCE_DESCRIPTION_FIELDS", Types.VARCHAR, 128),
-    HeaderField("SOURCE_DESCRIPTION_PARTITIONS", Types.INTEGER, 16),
-    HeaderField("SOURCE_DESCRIPTION_STATISTICS", Types.VARCHAR, 128),
-    HeaderField("SOURCE_DESCRIPTION_ERROR_STATS", Types.VARCHAR, 128),
-    HeaderField("SOURCE_DESCRIPTION_TIMESTAMP", Types.VARCHAR, 32)
-  )
-
-  val sourceDescriptionEntityList = sourceDescriptionEntity
+  val sourceDescriptionEntityList: List[HeaderField] = sourceDescriptionEntity
 
   val streamsListEntity = List(
     HeaderField("STREAM_NAME", Types.VARCHAR, 16),
@@ -216,11 +263,12 @@ object KsqlEntityHeaders {
     HeaderField("TOPIC_DESCRIPTION_NAME", Types.VARCHAR, 16),
     HeaderField("TOPIC_DESCRIPTION_KAFKA_TOPIC", Types.VARCHAR, 16),
     HeaderField("TOPIC_DESCRIPTION_FORMAT", Types.VARCHAR, 16),
-    HeaderField("TOPIC_DESCRIPTION_SCHEMA_STRING", Types.BOOLEAN, 64)
+    HeaderField("TOPIC_DESCRIPTION_SCHEMA_STRING", Types.VARCHAR, 256)
   )
 
-  val printTopic = List(
-    HeaderField("PRINT_TOPIC", Types.VARCHAR, 255)
+  val typesListEntity = List(
+    HeaderField("TYPE", Types.VARCHAR, 16),
+    HeaderField("TYPE_NAME", Types.VARCHAR, 16)
   )
 
 }

@@ -3,16 +3,20 @@ package com.github.mmolimar.ksql.jdbc
 import java.sql._
 import java.util
 import java.util.concurrent.Executor
-import java.util.{Collections, Properties}
+import java.util.{Collections, Optional, Properties}
 
 import com.github.mmolimar.ksql.jdbc.Exceptions._
-import io.confluent.ksql.rest.client.{KsqlRestClient, RestResponse}
+import io.confluent.ksql.rest.client.{BasicCredentials, KsqlRestClient, RestResponse}
 import io.confluent.ksql.rest.entity.KsqlEntityList
 
 import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
-case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[String, String]) {
+case class KsqlConnectionValues(ksqlServer: String,
+                                port: Int,
+                                username: Option[String],
+                                password: Option[String],
+                                config: Map[String, String]) {
 
   def ksqlUrl: String = {
     val protocol = if (isSecured) "https://" else "http://"
@@ -20,8 +24,9 @@ case class KsqlConnectionValues(ksqlServer: String, port: Int, config: Map[Strin
   }
 
   def jdbcUrl: String = {
+    val ksqlUserPass = username.flatMap(usr => password.map(pass => s"$usr:$pass@")).getOrElse("")
     val suffix = if (config.isEmpty) "" else "?"
-    s"${KsqlDriver.ksqlPrefix}$ksqlServer:$port$suffix${
+    s"${KsqlDriver.ksqlPrefix}$ksqlUserPass$ksqlServer:$port$suffix${
       config.map(c => s"${c._1}=${c._2}").mkString("&")
     }"
   }
@@ -166,11 +171,14 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
     } else {
       (Collections.emptyMap[String, AnyRef], Collections.emptyMap[String, String])
     }
-    new KsqlRestClient(values.ksqlUrl, localProps, clientProps)
+    val credentials = values.username
+      .flatMap(user => values.password.map(pass => Optional.of(BasicCredentials.of(user, pass))))
+      .getOrElse(Optional.empty[BasicCredentials])
+    KsqlRestClient.create(values.ksqlUrl, localProps, clientProps, credentials)
   }
 
   private[jdbc] def validate(): Unit = {
-    Try(ksqlClient.makeRootRequest) match {
+    Try(ksqlClient.getServerInfo) match {
       case Success(response) if response.isErroneous =>
         throw CannotConnect(values.ksqlServer, response.getErrorMessage.getMessage)
       case Failure(e) => throw CannotConnect(values.ksqlServer, e.getMessage)
@@ -213,7 +221,7 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
     properties.asScala.foreach(entry => setClientInfo(entry._1, entry._2))
   }
 
-  override def isReadOnly: Boolean = true
+  override def isReadOnly: Boolean = false
 
   override def getCatalog: String = None.orNull
 
@@ -225,6 +233,8 @@ class KsqlConnection(private[jdbc] val values: KsqlConnectionValues, properties:
   }
 
   override def getAutoCommit: Boolean = false
+
+  override def getSchema: String = None.orNull
 
   override def isValid(timeout: Int): Boolean = ksqlClient.makeStatusRequest.isSuccessful
 

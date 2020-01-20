@@ -7,8 +7,7 @@ import java.nio.channels.ServerSocketChannel
 import java.util
 import java.util.{Properties, Random, UUID}
 
-import _root_.io.confluent.ksql.rest.client.KsqlRestClient
-import javax.ws.rs.client.Client
+import io.confluent.ksql.rest.client.QueryStream
 import javax.ws.rs.core.Response
 import kafka.utils.Logging
 import kafka.zk.KafkaZkClient
@@ -25,7 +24,7 @@ object TestUtils extends Logging {
 
   private val RANDOM: Random = new Random
 
-  def constructTempDir(dirPrefix: String): File = {
+  def makeTempDir(dirPrefix: String): File = {
     val file: File = new File(System.getProperty("java.io.tmpdir"), dirPrefix + RANDOM.nextInt(10000000))
     if (!file.mkdirs) throw new RuntimeException("could not create temp directory: " + file.getAbsolutePath)
     file.deleteOnExit()
@@ -47,11 +46,10 @@ object TestUtils extends Logging {
     val defaultWait: Int = 100
     var currentWait: Int = 0
     try
-        while (isPortAvailable(host, port) && currentWait < maxWaitMs) {
-          Thread.sleep(defaultWait)
-          currentWait += defaultWait
-        }
-
+      while (isPortAvailable(host, port) && currentWait < maxWaitMs) {
+        Thread.sleep(defaultWait)
+        currentWait += defaultWait
+      }
     catch {
       case ie: InterruptedException => throw new RuntimeException(ie)
     }
@@ -64,9 +62,8 @@ object TestUtils extends Logging {
       ss.socket.setReuseAddress(false)
       ss.socket.bind(new InetSocketAddress(host, port))
       true
-
     } catch {
-      case ioe: IOException => false
+      case _: IOException => false
     }
     finally if (Option(ss).isDefined) ss.close()
   }
@@ -132,15 +129,13 @@ object TestUtils extends Logging {
     }
   }
 
-  class MockableKsqlRestClient(client: Client) extends KsqlRestClient("http://localhost:8080")
-
-  def mockQueryStream(mockResponse: Response): KsqlRestClient.QueryStream = {
-    classOf[KsqlRestClient.QueryStream].getDeclaredConstructors
+  def mockQueryStream(mockResponse: Response): QueryStream = {
+    classOf[QueryStream].getDeclaredConstructors
       .filter(_.getParameterCount == 1)
       .map(c => {
         c.setAccessible(true)
         c
-      }).head.newInstance(mockResponse).asInstanceOf[KsqlRestClient.QueryStream]
+      }).head.newInstance(mockResponse).asInstanceOf[QueryStream]
   }
 
   def implementedMethods[T <: AnyRef](implicit ct: ClassTag[T]): Seq[String] = {
@@ -149,7 +144,6 @@ object TestUtils extends Logging {
 
   def reflectMethods[T <: AnyRef](methods: Seq[String], implemented: Boolean, obj: T)
                                  (implicit tt: TypeTag[T], ct: ClassTag[T]): Seq[() => Any] = {
-
     val ksqlPackage = "com.github.mmolimar.ksql"
     val declarations = for {
       baseClass <- typeTag.tpe.baseClasses
@@ -162,7 +156,6 @@ object TestUtils extends Logging {
       .map(_.asMethod)
       .filter(!_.isProtected)
       .map(m => {
-
         val args = new Array[AnyRef](if (m.paramLists.isEmpty) 0 else m.paramLists.head.size)
         if (m.paramLists.nonEmpty)
           for ((paramType, index) <- m.paramLists.head.zipWithIndex) {
@@ -175,7 +168,7 @@ object TestUtils extends Logging {
               case tof if tof == typeOf[Long].typeSymbol => Long.box(0)
               case tof if tof == typeOf[Float].typeSymbol => Float.box(0)
               case tof if tof == typeOf[String].typeSymbol => ""
-              case e => null
+              case _ => null
             }
           }
 
@@ -187,8 +180,6 @@ object TestUtils extends Logging {
           } catch {
             case t: InvocationTargetException => throw t.getCause
           }
-
       })
   }
-
 }
