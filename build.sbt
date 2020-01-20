@@ -1,4 +1,4 @@
-val projectVersion = "1.2.0-SNAPSHOT"
+val projectVersion = "1.2.0"
 val projectScalaVersion = "2.12.10"
 val ksqlVersion = "5.4.0"
 val kafkaVersion = "2.4.0"
